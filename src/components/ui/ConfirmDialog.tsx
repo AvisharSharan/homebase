@@ -1,5 +1,15 @@
 import { AlertTriangle } from "lucide-react";
-import { Button } from "./Button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./alert-dialog";
+import { buttonVariants } from "./button";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -18,29 +28,31 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-sm rounded-2xl border border-white/[0.08] bg-ink-900 p-5 shadow-panel animate-slide-up">
-        <div className="flex gap-3.5">
-          <div className="grid size-9 shrink-0 place-items-center rounded-lg border border-red-500/25 bg-red-500/10 text-red-400">
-            <AlertTriangle size={17} />
+    <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+      <AlertDialogContent className="w-full max-w-sm rounded-2xl border border-white/[0.08] bg-ink-900 p-5 shadow-panel">
+        <AlertDialogHeader>
+          <div className="flex gap-3.5">
+            <div className="grid size-9 shrink-0 place-items-center rounded-lg border border-red-500/25 bg-red-500/10 text-red-400">
+              <AlertTriangle size={17} />
+            </div>
+            <div className="flex flex-col gap-1.5 text-left">
+              <AlertDialogTitle className="text-sm font-semibold text-bone-500">{title}</AlertDialogTitle>
+              <AlertDialogDescription className="text-[13px] leading-5 text-stone-500">
+                {description}
+              </AlertDialogDescription>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-semibold text-bone-500">{title}</h2>
-            <p className="mt-1.5 text-[13px] leading-5 text-stone-500">{description}</p>
-          </div>
-        </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onCancel}>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="mt-5 sm:justify-end gap-2">
+          <AlertDialogCancel onClick={onCancel} className="mt-0 border-white/8 bg-ink-800 hover:bg-ink-700 hover:text-bone-500 text-stone-400 transition">
             Cancel
-          </Button>
-          <Button variant="danger" onClick={onConfirm}>
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} className={buttonVariants({ variant: "destructive" })}>
             {confirmLabel}
-          </Button>
-        </div>
-      </div>
-    </div>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
