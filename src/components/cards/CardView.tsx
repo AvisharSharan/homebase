@@ -1,4 +1,4 @@
-import { Check, Code2, ExternalLink, FileText, Link2, ListChecks, Pin, PinOff, Trash2 } from "lucide-react";
+import { Check, Code2, ExternalLink, FileText, Link2, ListChecks, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import { CardType, HomebaseCard } from "../../types";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
@@ -53,6 +53,18 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
         {/* Card actions */}
         <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
           <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className="size-8 px-0 rounded-md"
+                  variant="ghost"
+                  onClick={() => onEdit(card)}
+                >
+                  <Pencil size={14} className="text-stone-400 hover:text-bone-400" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit card</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
