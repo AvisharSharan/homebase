@@ -58,9 +58,10 @@ export interface DailyState {
 }
 
 export interface HomebaseData {
-  version: 1;
+  version: number;
   spaces: Space[];
   cards: HomebaseCard[];
   daily: DailyState;
+  hasSeenWelcome: boolean;
   updatedAt: string;
 }

@@ -70,7 +70,8 @@ export function validateHomebaseData(value: unknown): value is HomebaseData {
     typeof value.daily.focus === "string" &&
     typeof value.daily.quickNotes === "string" &&
     typeof value.daily.mood === "string" &&
-    typeof value.updatedAt === "string"
+    typeof value.updatedAt === "string" &&
+    (typeof value.hasSeenWelcome === "boolean" || typeof value.hasSeenWelcome === "undefined")
   );
 }
 
@@ -80,7 +81,13 @@ export function loadHomebaseData(): HomebaseData {
 
   try {
     const parsed = JSON.parse(stored);
-    if (validateHomebaseData(parsed)) return parsed;
+    if (validateHomebaseData(parsed)) {
+      if (typeof parsed.hasSeenWelcome !== "boolean") {
+        parsed.hasSeenWelcome = true; // Assume existing users have seen it
+      }
+      return parsed;
+    }
+    return blankData;
   } catch {
     return blankData;
   }

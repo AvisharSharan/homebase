@@ -7,6 +7,7 @@ import { GlobalSearch } from "./components/search/GlobalSearch";
 import { Sidebar } from "./components/spaces/Sidebar";
 import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/ConfirmDialog";
+import { WelcomeModal } from "./components/ui/WelcomeModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
 import { downloadBackup, readBackupFile } from "./lib/export/backup";
@@ -57,6 +58,7 @@ export default function App() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [welcomeOpen, setWelcomeOpen] = useState(!data.hasSeenWelcome);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -100,6 +102,13 @@ export default function App() {
 
   function mutate(updater: (current: HomebaseData) => HomebaseData) {
     setData((current) => ({ ...updater(current), updatedAt: new Date().toISOString() }));
+  }
+
+  function dismissWelcome(open: boolean) {
+    setWelcomeOpen(open);
+    if (!open && !data.hasSeenWelcome) {
+      mutate((current) => ({ ...current, hasSeenWelcome: true }));
+    }
   }
 
   function openCreateCard() {
@@ -395,6 +404,12 @@ export default function App() {
         confirmLabel="Delete"
         onCancel={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
+      />
+
+      <WelcomeModal
+        open={welcomeOpen}
+        onOpenChange={dismissWelcome}
+        onComplete={() => dismissWelcome(false)}
       />
     </div>
   );
