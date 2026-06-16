@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Download, Filter, Menu, Plus, Upload, X } from "lucide-react";
+import { Filter, Menu, Plus, X } from "lucide-react";
 import { CardEditor } from "./components/cards/CardEditor";
 import { CardGrid } from "./components/cards/CardGrid";
 import { DailyPanel } from "./components/daily/DailyPanel";
@@ -7,6 +7,7 @@ import { GlobalSearch } from "./components/search/GlobalSearch";
 import { Sidebar } from "./components/spaces/Sidebar";
 import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/ConfirmDialog";
+import { PromptDialog } from "./components/ui/PromptDialog";
 import { WelcomeModal } from "./components/ui/WelcomeModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
@@ -14,12 +15,18 @@ import { downloadBackup, readBackupFile } from "./lib/export/backup";
 import { createId } from "./lib/id";
 import { loadHomebaseData, saveHomebaseData } from "./lib/storage/storage";
 import { CardType, HomebaseCard, HomebaseData, Space } from "./types";
+import { blankData } from "./data/sampleData";
 
 const allTypes: Array<CardType | "all"> = ["all", "note", "task", "link", "reference", "snippet"];
 
 type PendingDelete =
   | { kind: "card"; card: HomebaseCard }
   | { kind: "space"; space: Space }
+  | null;
+
+type PromptState = 
+  | { type: "create" }
+  | { type: "rename"; spaceId: string; defaultValue: string }
   | null;
 
 function normalize(value: string) {
@@ -56,6 +63,8 @@ export default function App() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<HomebaseCard | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
+  const [promptState, setPromptState] = useState<PromptState>(null);
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [welcomeOpen, setWelcomeOpen] = useState(!data.hasSeenWelcome);
@@ -104,10 +113,16 @@ export default function App() {
     setData((current) => ({ ...updater(current), updatedAt: new Date().toISOString() }));
   }
 
-  function dismissWelcome(open: boolean) {
+  function dismissWelcome(open: boolean, skip = false) {
     setWelcomeOpen(open);
     if (!open && !data.hasSeenWelcome) {
-      mutate((current) => ({ ...current, hasSeenWelcome: true }));
+      mutate((current) => {
+        let nextCards = current.cards;
+        if (skip) {
+          nextCards = nextCards.filter(c => c.id !== "welcome-note" && c.id !== "tutorial-tasks");
+        }
+        return { ...current, hasSeenWelcome: true, cards: nextCards };
+      });
     }
   }
 
@@ -128,25 +143,31 @@ export default function App() {
   }
 
   function createSpace() {
-    const name = window.prompt("Name this space");
-    if (!name?.trim()) return;
-    const timestamp = new Date().toISOString();
-    const space: Space = { id: createId("space"), name: name.trim(), createdAt: timestamp, updatedAt: timestamp };
-    mutate((current) => ({ ...current, spaces: [...current.spaces, space] }));
-    setSelectedSpaceId(space.id);
+    setPromptState({ type: "create" });
   }
 
   function renameSpace(spaceId: string) {
     const space = data.spaces.find((item) => item.id === spaceId);
     if (!space) return;
-    const name = window.prompt("Rename space", space.name);
-    if (!name?.trim()) return;
-    mutate((current) => ({
-      ...current,
-      spaces: current.spaces.map((item) =>
-        item.id === spaceId ? { ...item, name: name.trim(), updatedAt: new Date().toISOString() } : item,
-      ),
-    }));
+    setPromptState({ type: "rename", spaceId, defaultValue: space.name });
+  }
+
+  function handlePromptConfirm(value: string) {
+    if (promptState?.type === "create") {
+      const timestamp = new Date().toISOString();
+      const space: Space = { id: createId("space"), name: value, createdAt: timestamp, updatedAt: timestamp };
+      mutate((current) => ({ ...current, spaces: [...current.spaces, space] }));
+      setSelectedSpaceId(space.id);
+    } else if (promptState?.type === "rename") {
+      const spaceId = promptState.spaceId;
+      mutate((current) => ({
+        ...current,
+        spaces: current.spaces.map((item) =>
+          item.id === spaceId ? { ...item, name: value, updatedAt: new Date().toISOString() } : item,
+        ),
+      }));
+    }
+    setPromptState(null);
   }
 
   function confirmDelete() {
@@ -203,6 +224,13 @@ export default function App() {
     }
   }
 
+  function resetApp() {
+    setData(blankData);
+    setSelectedSpaceId("daily");
+    setConfirmResetOpen(false);
+    setWelcomeOpen(true);
+  }
+
   const deleteTitle = pendingDelete?.kind === "space" ? "Delete space?" : "Delete card?";
   const deleteDescription =
     pendingDelete?.kind === "space"
@@ -226,6 +254,9 @@ export default function App() {
             const space = data.spaces.find((item) => item.id === spaceId);
             if (space && data.spaces.length > 1) setPendingDelete({ kind: "space", space });
           }}
+          onExport={() => downloadBackup(data)}
+          onImport={() => fileInputRef.current?.click()}
+          onReset={() => setConfirmResetOpen(true)}
         />
       </div>
 
@@ -250,6 +281,9 @@ export default function App() {
                 const space = data.spaces.find((item) => item.id === spaceId);
                 if (space && data.spaces.length > 1) setPendingDelete({ kind: "space", space });
               }}
+              onExport={() => downloadBackup(data)}
+              onImport={() => fileInputRef.current?.click()}
+              onReset={() => setConfirmResetOpen(true)}
             />
           </div>
         </div>
@@ -285,36 +319,11 @@ export default function App() {
 
               {/* Actions */}
               <div className="flex shrink-0 items-center gap-1.5">
-                <Button onClick={openCreateCard} className="gap-1.5 hover:bg-white hover:text-black text-black bg-white shadow-inner-bright">
+                <Button onClick={openCreateCard} className="gap-1.5 hover:bg-white hover:text-black text-black bg-white shadow-inner-bright px-3 sm:px-4">
                   <Plus size={16} />
                   <span className="hidden sm:inline">New card</span>
                 </Button>
                 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      onClick={() => downloadBackup(data)}
-                      className="size-10 px-0"
-                    >
-                      <Upload size={16} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Export JSON backup</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="size-10 px-0"
-                    >
-                      <Download size={16} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Import JSON backup</TooltipContent>
-                </Tooltip>
                 <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={importBackup} />
               </div>
             </div>
@@ -406,10 +415,28 @@ export default function App() {
         onConfirm={confirmDelete}
       />
 
+      <ConfirmDialog
+        open={confirmResetOpen}
+        title="Reset Homebase?"
+        description="This will permanently delete all your spaces, cards, and data, resetting the app to a blank slate. Are you absolutely sure?"
+        confirmLabel="Reset Everything"
+        onCancel={() => setConfirmResetOpen(false)}
+        onConfirm={resetApp}
+      />
+
       <WelcomeModal
         open={welcomeOpen}
-        onOpenChange={dismissWelcome}
-        onComplete={() => dismissWelcome(false)}
+        onOpenChange={(open) => dismissWelcome(open, false)}
+        onComplete={(skip) => dismissWelcome(false, skip)}
+      />
+
+      <PromptDialog
+        open={Boolean(promptState)}
+        title={promptState?.type === "create" ? "Name this space" : "Rename space"}
+        defaultValue={promptState?.type === "rename" ? promptState.defaultValue : ""}
+        confirmLabel={promptState?.type === "create" ? "Create" : "Save"}
+        onConfirm={handlePromptConfirm}
+        onCancel={() => setPromptState(null)}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Download, MoreHorizontal, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
 import { Space } from "../../types";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
@@ -11,6 +11,9 @@ interface SidebarProps {
   onCreateSpace: () => void;
   onRenameSpace: (spaceId: string) => void;
   onDeleteSpace: (spaceId: string) => void;
+  onExport: () => void;
+  onImport: () => void;
+  onReset: () => void;
 }
 
 export function Sidebar({
@@ -21,6 +24,9 @@ export function Sidebar({
   onCreateSpace,
   onRenameSpace,
   onDeleteSpace,
+  onExport,
+  onImport,
+  onReset,
 }: SidebarProps) {
   return (
     <aside className="flex h-full min-h-0 w-full flex-col border-r border-white/[0.07] bg-ink-950 px-3 py-5 md:w-64">
@@ -108,14 +114,44 @@ export function Sidebar({
             );
           })}
         </div>
-      </TooltipProvider>
 
       {/* Footer */}
-      <footer className="mt-4 pt-4 border-t border-white/[0.07] px-2">
-        <p className="text-[11px] leading-5 text-stone-600">
-          Local-first. All data stays in this browser.
+      <footer className="mt-4 pt-4 border-t border-white/[0.07] px-2 flex flex-col gap-3">
+        <div className="flex items-center gap-1 text-stone-400">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" onClick={onExport} className="size-8 p-0 hover:bg-white/10 hover:text-white rounded-md transition-colors">
+                <Upload size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Export Backup</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" onClick={onImport} className="size-8 p-0 hover:bg-white/10 hover:text-white rounded-md transition-colors">
+                <Download size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Import Backup</TooltipContent>
+          </Tooltip>
+
+          <div className="flex-1" />
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" onClick={onReset} className="size-8 p-0 hover:bg-red-500/10 text-stone-500 hover:text-red-400 rounded-md transition-colors">
+                <RotateCcw size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Factory Reset</TooltipContent>
+          </Tooltip>
+        </div>
+        <p className="text-[10px] uppercase tracking-wider font-semibold text-stone-600">
+          Local-first Command OS
         </p>
       </footer>
+      </TooltipProvider>
     </aside>
   );
 }
