@@ -1,7 +1,7 @@
 import { HomebaseCard } from "../../types";
 import { CardView } from "./CardView";
 import { EmptyState } from "../ui/EmptyState";
-import { Button } from "../ui/Button";
+import { Button } from "../ui/button";
 
 interface CardGridProps {
   cards: HomebaseCard[];

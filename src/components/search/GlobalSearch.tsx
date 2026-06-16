@@ -1,4 +1,5 @@
 import { Search, X } from "lucide-react";
+import { Input } from "../ui/input";
 
 interface GlobalSearchProps {
   value: string;
@@ -8,16 +9,16 @@ interface GlobalSearchProps {
 
 export function GlobalSearch({ value, onChange, resultCount }: GlobalSearchProps) {
   return (
-    <label className="relative flex min-w-0 flex-1 items-center">
+    <div className="relative flex min-w-0 flex-1 items-center">
       <Search
         className="pointer-events-none absolute left-3 text-stone-600"
         size={16}
       />
-      <input
+      <Input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Search spaces, cards, tags..."
-        className="h-9 w-full rounded-lg border border-white/[0.07] bg-ink-850 px-10 text-sm text-bone-500 outline-none transition placeholder:text-stone-600 focus:border-white/20 focus:bg-ink-800 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]"
+        className="h-9 w-full rounded-lg border-white/[0.07] bg-ink-850 px-10 text-sm text-bone-500 transition placeholder:text-stone-600 focus-visible:border-white/20 focus-visible:bg-ink-800 focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-0"
       />
       {value ? (
         <>
@@ -33,6 +34,6 @@ export function GlobalSearch({ value, onChange, resultCount }: GlobalSearchProps
           </button>
         </>
       ) : null}
-    </label>
+    </div>
   );
 }

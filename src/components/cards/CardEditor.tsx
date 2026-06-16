@@ -1,8 +1,11 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
 import { CardType, HomebaseCard, TaskItem } from "../../types";
 import { createId } from "../../lib/id";
-import { Button } from "../ui/Button";
+import { Button } from "../ui/button";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "../ui/sheet";
+import { Label } from "../ui/label";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 
 interface CardEditorProps {
   open: boolean;
@@ -13,14 +16,6 @@ interface CardEditorProps {
 }
 
 const cardTypes: CardType[] = ["note", "task", "link", "reference", "snippet"];
-
-const inputClass =
-  "h-10 w-full rounded-lg border border-white/[0.07] bg-ink-850 px-3 text-sm text-bone-500 outline-none transition placeholder:text-stone-700 focus:border-white/20 focus:bg-ink-800 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]";
-
-const textareaClass =
-  "w-full resize-y rounded-lg border border-white/[0.07] bg-ink-850 px-3 py-2.5 text-sm leading-6 text-bone-500 outline-none transition placeholder:text-stone-700 focus:border-white/20 focus:bg-ink-800 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]";
-
-const labelClass = "grid gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-stone-600";
 
 export function CardEditor({ open, spaceId, card, onClose, onSave }: CardEditorProps) {
   const [type, setType] = useState<CardType>("note");
@@ -46,8 +41,6 @@ export function CardEditor({ open, spaceId, card, onClose, onSave }: CardEditorP
   }, [card, open]);
 
   const drawerTitle = useMemo(() => (isEditing ? "Edit card" : "New card"), [isEditing]);
-
-  if (!open) return null;
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -89,31 +82,20 @@ export function CardEditor({ open, spaceId, card, onClose, onSave }: CardEditorP
   }
 
   return (
-    <div
-      className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        className="ml-auto flex h-full w-full max-w-lg flex-col border-l border-white/[0.07] bg-ink-900 shadow-panel animate-slide-in"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <SheetContent className="w-full sm:max-w-lg border-l border-white/[0.07] bg-ink-900 p-0 flex flex-col gap-0 shadow-panel">
         {/* Drawer header */}
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
-          <div>
-            <h2 className="text-base font-semibold text-bone-500">{drawerTitle}</h2>
-            <p className="mt-0.5 text-[11px] text-stone-600">Stored locally in this browser.</p>
-          </div>
-          <Button className="size-9 px-0 rounded-lg" variant="ghost" onClick={onClose}>
-            <X size={16} />
-          </Button>
-        </div>
+        <SheetHeader className="border-b border-white/[0.06] px-5 py-4 text-left">
+          <SheetTitle className="text-base font-semibold text-bone-500">{drawerTitle}</SheetTitle>
+          <SheetDescription className="mt-0.5 text-[11px] text-stone-600">Stored locally in this browser.</SheetDescription>
+        </SheetHeader>
 
-        <form className="flex-1 overflow-y-auto p-5" onSubmit={submit}>
-          <div className="grid gap-5">
+        <form className="flex-1 overflow-y-auto flex flex-col" onSubmit={submit}>
+          <div className="flex-1 p-5 space-y-5">
             {/* Type selector — pill toggles */}
-            <div className={labelClass}>
-              Type
-              <div className="flex gap-1.5 flex-wrap mt-0.5">
+            <div className="grid gap-2.5">
+              <Label className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Type</Label>
+              <div className="flex gap-1.5 flex-wrap">
                 {cardTypes.map((cardType) => (
                   <button
                     key={cardType}
@@ -133,40 +115,42 @@ export function CardEditor({ open, spaceId, card, onClose, onSave }: CardEditorP
             </div>
 
             {/* Title */}
-            <label className={labelClass}>
-              Title
-              <input
+            <div className="grid gap-2">
+              <Label htmlFor="title" className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Title</Label>
+              <Input
+                id="title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Give this card a name..."
-                className={inputClass}
+                className="h-10 border-white/[0.07] bg-ink-850 focus-visible:border-white/20 focus-visible:bg-ink-800"
               />
-            </label>
+            </div>
 
             {/* Content */}
-            <label className={labelClass}>
-              Content
-              <textarea
+            <div className="grid gap-2">
+              <Label htmlFor="content" className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Content</Label>
+              <Textarea
+                id="content"
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
                 rows={type === "snippet" ? 9 : 5}
                 placeholder={type === "snippet" ? "Paste your code snippet here..." : "Add notes, details, or context..."}
-                className={textareaClass}
+                className="resize-y border-white/[0.07] bg-ink-850 focus-visible:border-white/20 focus-visible:bg-ink-800"
               />
-            </label>
+            </div>
 
             {/* Task items */}
             {type === "task" && (
               <div className="grid gap-2">
-                <span className={labelClass.split(" grid")[0]}>Task items</span>
+                <Label className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Task items</Label>
                 <div className="space-y-2">
                   {tasks.map((task, i) => (
-                    <input
+                    <Input
                       key={task.id}
                       value={task.text}
                       onChange={(event) => updateTask(task.id, event.target.value)}
                       placeholder={`Item ${i + 1}...`}
-                      className={inputClass}
+                      className="h-10 border-white/[0.07] bg-ink-850 focus-visible:border-white/20 focus-visible:bg-ink-800"
                     />
                   ))}
                 </div>
@@ -183,66 +167,70 @@ export function CardEditor({ open, spaceId, card, onClose, onSave }: CardEditorP
 
             {/* URL */}
             {type === "link" && (
-              <label className={labelClass}>
-                URL
-                <input
+              <div className="grid gap-2">
+                <Label htmlFor="url" className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">URL</Label>
+                <Input
+                  id="url"
                   value={url}
                   onChange={(event) => setUrl(event.target.value)}
                   placeholder="https://"
-                  className={inputClass}
+                  className="h-10 border-white/[0.07] bg-ink-850 focus-visible:border-white/20 focus-visible:bg-ink-800"
                 />
-              </label>
+              </div>
             )}
 
             {/* Reference */}
             {type === "reference" && (
-              <label className={labelClass}>
-                Reference
-                <input
+              <div className="grid gap-2">
+                <Label htmlFor="reference" className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Reference</Label>
+                <Input
+                  id="reference"
                   value={reference}
                   onChange={(event) => setReference(event.target.value)}
                   placeholder="File, book, folder, or source..."
-                  className={inputClass}
+                  className="h-10 border-white/[0.07] bg-ink-850 focus-visible:border-white/20 focus-visible:bg-ink-800"
                 />
-              </label>
+              </div>
             )}
 
             {/* Language */}
             {type === "snippet" && (
-              <label className={labelClass}>
-                Language
-                <input
+              <div className="grid gap-2">
+                <Label htmlFor="language" className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Language</Label>
+                <Input
+                  id="language"
                   value={language}
                   onChange={(event) => setLanguage(event.target.value)}
                   placeholder="ts, js, py, text..."
-                  className={inputClass}
+                  className="h-10 border-white/[0.07] bg-ink-850 focus-visible:border-white/20 focus-visible:bg-ink-800"
                 />
-              </label>
+              </div>
             )}
 
             {/* Tags */}
-            <label className={labelClass}>
-              Tags
-              <input
+            <div className="grid gap-2">
+              <Label htmlFor="tags" className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Tags</Label>
+              <Input
+                id="tags"
                 value={tags}
                 onChange={(event) => setTags(event.target.value)}
                 placeholder="comma, separated, tags"
-                className={inputClass}
+                className="h-10 border-white/[0.07] bg-ink-850 focus-visible:border-white/20 focus-visible:bg-ink-800"
               />
-            </label>
+            </div>
           </div>
 
           {/* Footer actions */}
-          <div className="sticky bottom-0 mt-6 flex justify-end gap-2 border-t border-white/[0.06] bg-ink-900 pt-4">
+          <SheetFooter className="p-5 border-t border-white/[0.06] bg-ink-900 sm:justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary">
+            <Button type="submit">
               {isEditing ? "Save changes" : "Create card"}
             </Button>
-          </div>
+          </SheetFooter>
         </form>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

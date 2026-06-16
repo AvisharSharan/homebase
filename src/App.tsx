@@ -5,8 +5,10 @@ import { CardGrid } from "./components/cards/CardGrid";
 import { DailyPanel } from "./components/daily/DailyPanel";
 import { GlobalSearch } from "./components/search/GlobalSearch";
 import { Sidebar } from "./components/spaces/Sidebar";
-import { Button } from "./components/ui/Button";
+import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/ConfirmDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
 import { downloadBackup, readBackupFile } from "./lib/export/backup";
 import { createId } from "./lib/id";
 import { loadHomebaseData, saveHomebaseData } from "./lib/storage/storage";
@@ -246,57 +248,69 @@ export default function App() {
 
       {/* Main content */}
       <main className="flex min-w-0 flex-1 flex-col">
-        {/* Header */}
-        <header className="border-b border-white/[0.06] bg-ink-950/80 px-4 py-3 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-[1400px] items-center gap-3">
-            {/* Mobile menu toggle */}
-            <Button
-              className="size-9 shrink-0 px-0 md:hidden"
-              variant="ghost"
-              onClick={() => setMobileSidebarOpen(true)}
-            >
-              <Menu size={16} />
-            </Button>
-
-            {/* Space label */}
-            <div className="hidden min-w-[140px] sm:block">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
-                {query ? "Global results" : "Space"}
-              </p>
-              <h2 className="truncate text-sm font-semibold text-bone-500 leading-tight mt-0.5">
-                {query ? "Search" : selectedSpace?.name}
-              </h2>
-            </div>
-
-            {/* Search */}
-            <GlobalSearch value={query} onChange={setQuery} resultCount={resultCount} />
-
-            {/* Actions */}
-            <div className="flex shrink-0 items-center gap-1.5">
-              <Button variant="primary" onClick={openCreateCard} className="gap-1.5">
-                <Plus size={16} />
-                <span className="hidden sm:inline">New card</span>
-              </Button>
+        <TooltipProvider delayDuration={200}>
+          {/* Header */}
+          <header className="border-b border-white/[0.06] bg-ink-950/80 px-4 py-3 backdrop-blur">
+            <div className="mx-auto flex w-full max-w-[1400px] items-center gap-3">
+              {/* Mobile menu toggle */}
               <Button
+                className="size-9 shrink-0 px-0 md:hidden"
                 variant="ghost"
-                onClick={() => downloadBackup(data)}
-                title="Export JSON backup"
-                className="size-10 px-0"
+                onClick={() => setMobileSidebarOpen(true)}
               >
-                <Upload size={16} />
+                <Menu size={16} />
               </Button>
-              <Button
-                variant="ghost"
-                onClick={() => fileInputRef.current?.click()}
-                title="Import JSON backup"
-                className="size-10 px-0"
-              >
-                <Download size={16} />
-              </Button>
-              <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={importBackup} />
+
+              {/* Space label */}
+              <div className="hidden min-w-[140px] sm:block">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
+                  {query ? "Global results" : "Space"}
+                </p>
+                <h2 className="truncate text-sm font-semibold text-bone-500 leading-tight mt-0.5">
+                  {query ? "Search" : selectedSpace?.name}
+                </h2>
+              </div>
+
+              {/* Search */}
+              <GlobalSearch value={query} onChange={setQuery} resultCount={resultCount} />
+
+              {/* Actions */}
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button onClick={openCreateCard} className="gap-1.5 hover:bg-white hover:text-black text-black bg-white shadow-inner-bright">
+                  <Plus size={16} />
+                  <span className="hidden sm:inline">New card</span>
+                </Button>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      onClick={() => downloadBackup(data)}
+                      className="size-10 px-0"
+                    >
+                      <Upload size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Export JSON backup</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="size-10 px-0"
+                    >
+                      <Download size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Import JSON backup</TooltipContent>
+                </Tooltip>
+                <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={importBackup} />
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        </TooltipProvider>
 
         {/* Content area */}
         <section className="flex-1 overflow-y-auto px-4 py-5 lg:px-6">
@@ -334,17 +348,18 @@ export default function App() {
               </p>
               <label className="flex items-center gap-2 text-[12px] text-stone-600">
                 <Filter size={14} />
-                <select
-                  value={typeFilter}
-                  onChange={(event) => setTypeFilter(event.target.value as CardType | "all")}
-                  className="h-8 rounded-lg border border-white/[0.07] bg-ink-850 px-2.5 text-[12px] text-bone-400 outline-none transition hover:border-white/12 focus:border-amber-500/25"
-                >
-                  {allTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type === "all" ? "All types" : type}
-                    </option>
-                  ))}
-                </select>
+                <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val as CardType | "all")}>
+                  <SelectTrigger className="h-8 w-32 bg-ink-850 border-white/[0.07] text-[12px]">
+                    <SelectValue placeholder="All types" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-ink-850 border-white/[0.07]">
+                    {allTypes.map((type) => (
+                      <SelectItem key={type} value={type} className="text-[12px] focus:bg-ink-800 focus:text-white">
+                        {type === "all" ? "All types" : type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </label>
             </div>
 
