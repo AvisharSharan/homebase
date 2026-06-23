@@ -286,7 +286,7 @@ select option {
 [data-theme="snow"] .border-white\/\[0\.07\],
 [data-theme="snow"] .border-white\/\[0\.05\],
 [data-theme="snow"] .border-white\/\[0\.06\] {
-  border-color: rgba(0, 0, 0, 0.09);
+  border-color: rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="snow"] .hover\:border-white\/10:hover,
@@ -313,11 +313,17 @@ select option {
 [data-theme="snow"] .text-black {
   color: #ffffff;
 }
+[data-theme="snow"] .text-white {
+  color: #1a1a1a;
+}
 [data-theme="snow"] .hover\:bg-white:hover {
   background-color: #1a1a1a;
 }
 [data-theme="snow"] .hover\:text-black:hover {
   color: #ffffff;
+}
+[data-theme="snow"] .hover\:text-white:hover {
+  color: #1a1a1a;
 }
 [data-theme="snow"] .bg-white\/10,
 [data-theme="snow"] .bg-white\/15 {
@@ -339,6 +345,20 @@ select option {
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+/* Snow: fix shadows and logos */
+[data-theme="snow"] .shadow-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-theme="snow"] img[src*="logo"] {
+  filter: invert(1);
+}
+
+/* Snow: warm light-mode boot gradient */
+[data-theme="snow"] .animate-boot-pulse-css > div {
+  mix-blend-mode: normal !important;
+}
+
 /* Snow: fix ring-offset for accent swatches */
 [data-theme="snow"] .ring-offset-ink-950 {
   --tw-ring-offset-color: #f5f4f2;
@@ -358,4 +378,37 @@ select option {
 
 .settings-section-enter {
   animation: settingsFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ─── Boot Sequence ─── */
+
+@keyframes bootPulseCss {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.animate-boot-pulse-css {
+  animation: bootPulseCss 4.5s ease-out forwards;
+}
+
+@keyframes gradientWave {
+  0% {
+    background-position: 0% 50%;
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    background-position: 100% 50%;
+    transform: scale(1.02) translateY(8px);
+  }
+  100% {
+    background-position: 0% 50%;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-boot-pulse-css > div {
+  background-size: 200% 200% !important;
+  animation: gradientWave 3s ease-in-out infinite;
 }

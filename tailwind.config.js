@@ -97,6 +97,7 @@ export default {
         "slide-up": "slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "boot-pulse": "bootPulse 2.5s ease-out forwards",
       },
       keyframes: {
         fadeIn: {
@@ -118,6 +119,12 @@ export default {
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
+        },
+        bootPulse: {
+          "0%": { opacity: "0" },
+          "15%": { opacity: "1" },
+          "70%": { opacity: "1" },
+          "100%": { opacity: "0" },
         },
       },
     },
