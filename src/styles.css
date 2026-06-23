@@ -1,9 +1,9 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap");
+@import "highlight.js/styles/github-dark.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 @layer base {
   :root {
     --background: 0 0% 3%;
@@ -131,6 +131,34 @@
   --hb-stone-300: #555555;
   --hb-stone-200: #404040;
   color-scheme: light;
+}
+
+/* ═══════════════════════════════════════
+   Markdown Prose Theming
+   ═══════════════════════════════════════ */
+.prose {
+  --tw-prose-body: var(--hb-stone-500);
+  --tw-prose-headings: var(--hb-bone-500);
+  --tw-prose-lead: var(--hb-stone-400);
+  --tw-prose-links: var(--hb-accent);
+  --tw-prose-bold: var(--hb-bone-400);
+  --tw-prose-counters: var(--hb-stone-400);
+  --tw-prose-bullets: var(--hb-stone-500);
+  --tw-prose-hr: rgba(255, 255, 255, 0.07);
+  --tw-prose-quotes: var(--hb-stone-300);
+  --tw-prose-quote-borders: var(--hb-stone-600);
+  --tw-prose-captions: var(--hb-stone-500);
+  --tw-prose-code: var(--hb-accent-text);
+  --tw-prose-pre-code: var(--hb-stone-300);
+  --tw-prose-pre-bg: var(--hb-ink-950);
+  --tw-prose-th-borders: rgba(255, 255, 255, 0.1);
+  --tw-prose-td-borders: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="snow"] .prose {
+  --tw-prose-hr: rgba(0, 0, 0, 0.09);
+  --tw-prose-th-borders: rgba(0, 0, 0, 0.1);
+  --tw-prose-td-borders: rgba(0, 0, 0, 0.05);
 }
 
 /* ═══════════════════════════════════════
@@ -283,61 +311,49 @@ select option {
 }
 
 /* ─── Snow theme: override white-opacity borders to black-opacity ─── */
-[data-theme="snow"] .border-white\/\[0\.07\],
-[data-theme="snow"] .border-white\/\[0\.05\],
-[data-theme="snow"] .border-white\/\[0\.06\] {
-  border-color: rgba(0, 0, 0, 0.04);
+[data-theme="snow"] [class*="border-white/"] {
+  border-color: rgba(0, 0, 0, 0.06) !important;
 }
 
-[data-theme="snow"] .hover\:border-white\/10:hover,
-[data-theme="snow"] .hover\:border-white\/14:hover,
-[data-theme="snow"] .hover\:border-white\/12:hover,
-[data-theme="snow"] .hover\:border-white\/\[0\.07\]:hover {
-  border-color: rgba(0, 0, 0, 0.16);
+[data-theme="snow"] [class*="hover:border-white/"]:hover {
+  border-color: rgba(0, 0, 0, 0.16) !important;
 }
 
-[data-theme="snow"] .border-white\/30,
-[data-theme="snow"] .border-white\/40 {
-  border-color: rgba(0, 0, 0, 0.25);
+[data-theme="snow"] [class*="focus-visible:border-white/"]:focus-visible {
+  border-color: rgba(0, 0, 0, 0.25) !important;
 }
 
-[data-theme="snow"] .ring-white\/20,
-[data-theme="snow"] .ring-white\/30 {
-  --tw-ring-color: rgba(0, 0, 0, 0.15);
+[data-theme="snow"] [class*="ring-white/"] {
+  --tw-ring-color: rgba(0, 0, 0, 0.15) !important;
 }
 
-/* Snow: fix white backgrounds on buttons/interactive */
+/* Snow: fix white backgrounds and text on buttons/interactive */
 [data-theme="snow"] .bg-white {
-  background-color: #1a1a1a;
+  background-color: #1a1a1a !important;
 }
 [data-theme="snow"] .text-black {
-  color: #ffffff;
+  color: #ffffff !important;
 }
 [data-theme="snow"] .text-white {
-  color: #1a1a1a;
+  color: #1a1a1a !important;
 }
-[data-theme="snow"] .hover\:bg-white:hover {
-  background-color: #1a1a1a;
+[data-theme="snow"] [class*="hover:bg-white"]:hover {
+  background-color: #1a1a1a !important;
 }
-[data-theme="snow"] .hover\:text-black:hover {
-  color: #ffffff;
+[data-theme="snow"] [class*="hover:text-black"]:hover {
+  color: #ffffff !important;
 }
-[data-theme="snow"] .hover\:text-white:hover {
-  color: #1a1a1a;
+[data-theme="snow"] [class*="hover:text-white"]:hover {
+  color: #1a1a1a !important;
 }
-[data-theme="snow"] .bg-white\/10,
-[data-theme="snow"] .bg-white\/15 {
-  background-color: rgba(0, 0, 0, 0.08);
+[data-theme="snow"] [class*="focus:text-white"]:focus {
+  color: #1a1a1a !important;
 }
-[data-theme="snow"] .hover\:bg-white\/10:hover,
-[data-theme="snow"] .hover\:bg-white\/\[0\.04\]:hover,
-[data-theme="snow"] .hover\:bg-white\/\[0\.06\]:hover,
-[data-theme="snow"] .hover\:bg-white\/\[0\.08\]:hover {
-  background-color: rgba(0, 0, 0, 0.06);
+[data-theme="snow"] [class*="bg-white/"] {
+  background-color: rgba(0, 0, 0, 0.05) !important;
 }
-[data-theme="snow"] .bg-white\/\[0\.06\],
-[data-theme="snow"] .bg-white\/\[0\.08\] {
-  background-color: rgba(0, 0, 0, 0.05);
+[data-theme="snow"] [class*="hover:bg-white/"]:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Snow: fix black overlay */
