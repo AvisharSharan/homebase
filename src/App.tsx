@@ -365,6 +365,7 @@ export default function App() {
                 setSettingsOpen(true);
                 setMobileSidebarOpen(false);
               }}
+              onToggleTheme={toggleTheme}
             />
           </div>
         </div>
