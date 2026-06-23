@@ -1,4 +1,4 @@
-import { HomebaseCard } from "../../types";
+import { CardDensity, HomebaseCard } from "../../types";
 import { CardView } from "./CardView";
 import { EmptyState } from "../ui/EmptyState";
 import { Button } from "../ui/button";
@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 interface CardGridProps {
   cards: HomebaseCard[];
   hasFilters: boolean;
+  density?: CardDensity;
   onCreateCard: () => void;
   onEdit: (card: HomebaseCard) => void;
   onDelete: (card: HomebaseCard) => void;
@@ -13,7 +14,7 @@ interface CardGridProps {
   onToggleTask: (cardId: string, taskId: string) => void;
 }
 
-export function CardGrid({ cards, hasFilters, onCreateCard, onEdit, onDelete, onTogglePin, onToggleTask }: CardGridProps) {
+export function CardGrid({ cards, hasFilters, density = "comfortable", onCreateCard, onEdit, onDelete, onTogglePin, onToggleTask }: CardGridProps) {
   if (cards.length === 0) {
     return (
       <EmptyState
@@ -28,8 +29,10 @@ export function CardGrid({ cards, hasFilters, onCreateCard, onEdit, onDelete, on
     );
   }
 
+  const gapClass = density === "compact" ? "gap-2" : "gap-3";
+
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className={`grid grid-cols-1 ${gapClass} sm:grid-cols-2 xl:grid-cols-3`}>
       {cards.map((card) => (
         <CardView
           key={card.id}

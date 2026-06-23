@@ -1,5 +1,6 @@
+import { useMemo } from "react";
 import { Check, Link2, StickyNote } from "lucide-react";
-import { DailyState, HomebaseCard } from "../../types";
+import { DailyState, HomebaseCard, SettingsData } from "../../types";
 import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -10,29 +11,45 @@ interface DailyPanelProps {
   daily: DailyState;
   dailyTasks: HomebaseCard[];
   pinnedLinks: HomebaseCard[];
+  settings: SettingsData;
   onDailyChange: (daily: DailyState) => void;
   onToggleTask: (cardId: string, taskId: string) => void;
 }
 
 const moods = ["sharp", "steady", "calm", "tired", "restless"] as const;
 
-export function DailyPanel({ daily, dailyTasks, pinnedLinks, onDailyChange, onToggleTask }: DailyPanelProps) {
+const GREETINGS = [
+  "Welcome back",
+  "Ready to focus?",
+  "What's on your mind today?",
+  "Let's get things done",
+  "Good to see you",
+  "Have a productive day",
+];
+
+export function DailyPanel({ daily, dailyTasks, pinnedLinks, settings, onDailyChange, onToggleTask }: DailyPanelProps) {
   const date = new Intl.DateTimeFormat(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
   }).format(new Date());
 
+  const randomGreeting = useMemo(() => {
+    return GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+  }, []);
+
   return (
     <Card className="mb-6 overflow-hidden rounded-2xl border-white/[0.07] bg-ink-900 shadow-card">
       {/* Top strip — date + mood */}
       <div className="flex flex-col gap-4 border-b border-white/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-stone-600">
-            <StickyNote size={12} />
-            Daily
-          </div>
-          <p className="mt-1 text-sm text-bone-400">{date}</p>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-bone-500 tracking-tight">
+            {randomGreeting}
+            {settings.profile.displayName ? `, ${settings.profile.displayName}` : ""}
+          </h1>
+          <p className="mt-1.5 text-sm text-stone-500">
+            {date}
+          </p>
         </div>
 
         {/* Mood chips */}
@@ -68,7 +85,7 @@ export function DailyPanel({ daily, dailyTasks, pinnedLinks, onDailyChange, onTo
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.3fr_0.85fr_0.85fr]">
-          {/* Quick notes */}
+          {settings.daily.showJournal && (
           <div className="grid gap-2">
             <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
               Quick notes
@@ -81,6 +98,7 @@ export function DailyPanel({ daily, dailyTasks, pinnedLinks, onDailyChange, onTo
               className="min-h-[130px] resize-none border-white/[0.07] bg-ink-850 text-sm leading-6 text-bone-400 focus-visible:border-white/20 focus-visible:bg-ink-800"
             />
           </div>
+          )}
 
           {/* Today's tasks */}
           <div className="grid gap-2 content-start">
@@ -115,7 +133,7 @@ export function DailyPanel({ daily, dailyTasks, pinnedLinks, onDailyChange, onTo
             </div>
           </div>
 
-          {/* Pinned links */}
+          {settings.daily.showPinnedLinks && (
           <div className="grid gap-2 content-start">
             <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
               Pinned links
@@ -142,6 +160,7 @@ export function DailyPanel({ daily, dailyTasks, pinnedLinks, onDailyChange, onTo
               )}
             </div>
           </div>
+          )}
         </div>
       </CardContent>
     </Card>

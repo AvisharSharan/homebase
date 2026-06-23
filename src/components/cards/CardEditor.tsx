@@ -11,13 +11,14 @@ interface CardEditorProps {
   open: boolean;
   spaceId: string;
   card?: HomebaseCard | null;
+  defaultType?: CardType;
   onClose: () => void;
   onSave: (card: HomebaseCard) => void;
 }
 
 const cardTypes: CardType[] = ["note", "task", "link", "reference", "snippet"];
 
-export function CardEditor({ open, spaceId, card, onClose, onSave }: CardEditorProps) {
+export function CardEditor({ open, spaceId, card, defaultType = "note", onClose, onSave }: CardEditorProps) {
   const [type, setType] = useState<CardType>("note");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -30,7 +31,7 @@ export function CardEditor({ open, spaceId, card, onClose, onSave }: CardEditorP
 
   useEffect(() => {
     if (!open) return;
-    setType(card?.type ?? "note");
+    setType(card?.type ?? defaultType);
     setTitle(card?.title ?? "");
     setContent(card?.content ?? "");
     setTags(card?.tags.join(", ") ?? "");
