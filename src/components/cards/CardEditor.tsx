@@ -6,6 +6,9 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 
 interface CardEditorProps {
   open: boolean;
@@ -27,6 +30,7 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
   const [reference, setReference] = useState("");
   const [language, setLanguage] = useState("text");
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [isPreview, setIsPreview] = useState(false);
   const isEditing = Boolean(card);
 
   useEffect(() => {
@@ -39,6 +43,7 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
     setReference(card?.type === "reference" ? card.reference : "");
     setLanguage(card?.type === "snippet" ? card.language : "text");
     setTasks(card?.type === "task" ? card.tasks : [{ id: createId("task"), text: "", completed: false }]);
+    setIsPreview(false);
   }, [card, open]);
 
   const drawerTitle = useMemo(() => (isEditing ? "Edit card" : "New card"), [isEditing]);
@@ -129,15 +134,44 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
 
             {/* Content */}
             <div className="grid gap-2">
-              <Label htmlFor="content" className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Content</Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                rows={type === "snippet" ? 9 : 5}
-                placeholder={type === "snippet" ? "Paste your code snippet here..." : "Add notes, details, or context..."}
-                className="resize-y border-white/[0.07] bg-ink-850 focus-visible:border-white/20 focus-visible:bg-ink-800"
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="content" className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Content</Label>
+                {type === "note" && (
+                  <div className="flex items-center gap-1 rounded-md bg-ink-950 p-0.5 border border-white/[0.05]">
+                    <button
+                      type="button"
+                      onClick={() => setIsPreview(false)}
+                      className={`px-2 py-0.5 text-[10px] font-medium rounded-sm transition-colors ${!isPreview ? 'bg-ink-800 text-bone-500 shadow-sm' : 'text-stone-500 hover:text-bone-400'}`}
+                    >
+                      Write
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsPreview(true)}
+                      className={`px-2 py-0.5 text-[10px] font-medium rounded-sm transition-colors ${isPreview ? 'bg-ink-800 text-bone-500 shadow-sm' : 'text-stone-500 hover:text-bone-400'}`}
+                    >
+                      Preview
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {type === "note" && isPreview ? (
+                <div className="min-h-[120px] rounded-md border border-white/[0.07] bg-ink-900 p-3 prose prose-sm prose-invert max-w-none text-stone-500 prose-headings:text-bone-500 prose-a:text-accent prose-code:text-accent-text prose-strong:text-bone-400 prose-ul:my-1 prose-p:my-1 text-[13px] leading-6 overflow-y-auto">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                    {content || "*Nothing to preview yet...*"}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <Textarea
+                  id="content"
+                  value={content}
+                  onChange={(event) => setContent(event.target.value)}
+                  rows={type === "snippet" ? 9 : 5}
+                  placeholder={type === "note" ? "Supports full Markdown! Try **bold**, *italics*, lists, or code blocks..." : type === "snippet" ? "Paste your code snippet here..." : "Add notes, details, or context..."}
+                  className="resize-y border-white/[0.07] bg-ink-850 focus-visible:border-white/20 focus-visible:bg-ink-800 font-mono text-[13px]"
+                />
+              )}
             </div>
 
             {/* Task items */}

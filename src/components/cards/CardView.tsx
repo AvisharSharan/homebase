@@ -5,6 +5,9 @@ import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Checkbox } from "../ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 
 const typeIcons: Record<CardType, typeof FileText> = {
   note: FileText,
@@ -119,6 +122,14 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
           <pre className="max-h-36 overflow-auto rounded-lg border border-white/[0.07] bg-ink-950 p-3 font-mono text-xs text-stone-400 leading-5">
             <code>{card.content}</code>
           </pre>
+        ) : card.type === "note" ? (
+          <div className="prose prose-sm prose-invert max-w-none text-stone-500 line-clamp-[8]
+                          prose-headings:text-bone-500 prose-a:text-accent prose-code:text-accent-text
+                          prose-strong:text-bone-400 prose-ul:my-1 prose-p:my-1 text-[13px] leading-6">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+              {card.content}
+            </ReactMarkdown>
+          </div>
         ) : (
           <p className="line-clamp-5 whitespace-pre-wrap text-[13px] leading-6 text-stone-500">
             {card.content}
