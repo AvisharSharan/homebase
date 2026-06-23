@@ -8,24 +8,24 @@ export default {
     extend: {
       colors: {
         ink: {
-          950: "#080808",
-          900: "#0f0f0f",
-          850: "#141414",
-          800: "#1a1a1a",
-          700: "#242424",
-          600: "#363636",
+          950: "var(--hb-ink-950)",
+          900: "var(--hb-ink-900)",
+          850: "var(--hb-ink-850)",
+          800: "var(--hb-ink-800)",
+          700: "var(--hb-ink-700)",
+          600: "var(--hb-ink-600)",
         },
         bone: {
-          500: "#f0eeeb",
-          400: "#c8c6c3",
-          300: "#979593",
+          500: "var(--hb-bone-500)",
+          400: "var(--hb-bone-400)",
+          300: "var(--hb-bone-300)",
         },
         stone: {
-          600: "#606060",
-          500: "#787878",
-          400: "#989898",
-          300: "#c0c0c0",
-          200: "#e0e0e0",
+          600: "var(--hb-stone-600)",
+          500: "var(--hb-stone-500)",
+          400: "var(--hb-stone-400)",
+          300: "var(--hb-stone-300)",
+          200: "var(--hb-stone-200)",
         },
         red: {
           600: "#c0392b",
@@ -63,8 +63,9 @@ export default {
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "var(--hb-accent)",
+          muted: "var(--hb-accent-muted)",
+          text: "var(--hb-accent-text)",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",

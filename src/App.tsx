@@ -4,6 +4,7 @@ import { CardEditor } from "./components/cards/CardEditor";
 import { CardGrid } from "./components/cards/CardGrid";
 import { DailyPanel } from "./components/daily/DailyPanel";
 import { GlobalSearch } from "./components/search/GlobalSearch";
+import { SettingsPanel } from "./components/settings/SettingsPanel";
 import { Sidebar } from "./components/spaces/Sidebar";
 import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/ConfirmDialog";
@@ -14,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./comp
 import { downloadBackup, readBackupFile } from "./lib/export/backup";
 import { createId } from "./lib/id";
 import { loadHomebaseData, saveHomebaseData } from "./lib/storage/storage";
-import { CardType, HomebaseCard, HomebaseData, Space } from "./types";
+import { CardType, HomebaseCard, HomebaseData, SettingsData, Space } from "./types";
 import { blankData } from "./data/sampleData";
 
 const allTypes: Array<CardType | "all"> = ["all", "note", "task", "link", "reference", "snippet"];
@@ -48,10 +49,13 @@ function cardMatches(card: HomebaseCard, spaceName: string, query: string) {
   return fields.some((field) => normalize(field).includes(query));
 }
 
-function sortCards(cards: HomebaseCard[]) {
+function sortCards(cards: HomebaseCard[], sortOrder: string = "newest") {
   return [...cards].sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    if (sortOrder === "alphabetical") return a.title.localeCompare(b.title);
+    const timeA = new Date(a.updatedAt).getTime();
+    const timeB = new Date(b.updatedAt).getTime();
+    return sortOrder === "oldest" ? timeA - timeB : timeB - timeA;
   });
 }
 
@@ -66,6 +70,7 @@ export default function App() {
   const [promptState, setPromptState] = useState<PromptState>(null);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [welcomeOpen, setWelcomeOpen] = useState(!data.hasSeenWelcome);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +78,29 @@ export default function App() {
   useEffect(() => {
     saveHomebaseData(data);
   }, [data]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Ctrl/Cmd + K: Focus search
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[placeholder="Search spaces, cards, tags..."]') as HTMLInputElement;
+        searchInput?.focus();
+      }
+      
+      // Ctrl/Cmd + E: Toggle editor
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        setEditorOpen((prev) => {
+          if (!prev) setEditingCard(null); // clear editing state when opening
+          return !prev;
+        });
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const selectedSpace = data.spaces.find((space) => space.id === selectedSpaceId) ?? data.spaces[0];
 
@@ -98,8 +126,9 @@ export default function App() {
         const matchesType = typeFilter === "all" || card.type === typeFilter;
         return inCurrentSpace && matchesType && cardMatches(card, space?.name ?? "", searchQuery);
       }),
+      data.settings.cards.sortOrder,
     );
-  }, [data.cards, data.spaces, query, searchQuery, selectedSpace?.id, typeFilter]);
+  }, [data.cards, data.spaces, data.settings.cards.sortOrder, query, searchQuery, selectedSpace?.id, typeFilter]);
 
   const resultCount = query
     ? filteredCards.length +
@@ -239,14 +268,30 @@ export default function App() {
         ? `This will permanently remove "${pendingDelete.card.title}".`
         : "";
 
+  const storageInfo = useMemo(() => {
+    const raw = window.localStorage.getItem("homebase:data:v2") ?? "";
+    return {
+      used: new Blob([raw]).size,
+      cardCount: data.cards.length,
+      spaceCount: data.spaces.length,
+    };
+  }, [data.cards.length, data.spaces.length]);
+
+  function updateSettings(next: SettingsData) {
+    mutate((current) => ({ ...current, settings: next }));
+  }
+
   return (
-    <div className="flex h-screen overflow-hidden text-bone-500">
+    <div
+      className="flex h-screen overflow-hidden bg-ink-950 text-bone-500"
+    >
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <Sidebar
           spaces={data.spaces}
           selectedSpaceId={selectedSpace?.id ?? ""}
           cardCounts={cardCounts}
+          settings={data.settings}
           onSelectSpace={setSelectedSpaceId}
           onCreateSpace={createSpace}
           onRenameSpace={renameSpace}
@@ -257,6 +302,7 @@ export default function App() {
           onExport={() => downloadBackup(data)}
           onImport={() => fileInputRef.current?.click()}
           onReset={() => setConfirmResetOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
       </div>
 
@@ -271,6 +317,7 @@ export default function App() {
               spaces={data.spaces}
               selectedSpaceId={selectedSpace?.id ?? ""}
               cardCounts={cardCounts}
+              settings={data.settings}
               onSelectSpace={(spaceId) => {
                 setSelectedSpaceId(spaceId);
                 setMobileSidebarOpen(false);
@@ -284,6 +331,10 @@ export default function App() {
               onExport={() => downloadBackup(data)}
               onImport={() => fileInputRef.current?.click()}
               onReset={() => setConfirmResetOpen(true)}
+              onOpenSettings={() => {
+                setSettingsOpen(true);
+                setMobileSidebarOpen(false);
+              }}
             />
           </div>
         </div>
@@ -293,7 +344,7 @@ export default function App() {
       <main className="flex min-w-0 flex-1 flex-col">
         <TooltipProvider delayDuration={200}>
           {/* Header */}
-          <header className="border-b border-white/[0.06] bg-ink-950/80 px-4 py-3 backdrop-blur">
+          <header className="border-b border-white/[0.06] px-4 py-3 backdrop-blur" style={{ backgroundColor: "color-mix(in srgb, var(--hb-ink-950) 80%, transparent)" }}>
             <div className="mx-auto flex w-full max-w-[1400px] items-center gap-3">
               {/* Mobile menu toggle */}
               <Button
@@ -319,7 +370,7 @@ export default function App() {
 
               {/* Actions */}
               <div className="flex shrink-0 items-center gap-1.5">
-                <Button onClick={openCreateCard} className="gap-1.5 hover:bg-white hover:text-black text-black bg-white shadow-inner-bright px-3 sm:px-4">
+                <Button onClick={openCreateCard} className="gap-1.5 bg-accent text-accent-text hover:opacity-90 shadow-inner-bright px-3 sm:px-4 transition-opacity">
                   <Plus size={16} />
                   <span className="hidden sm:inline">New card</span>
                 </Button>
@@ -352,6 +403,7 @@ export default function App() {
                 daily={data.daily}
                 dailyTasks={dailyTaskCards}
                 pinnedLinks={pinnedLinks}
+                settings={data.settings}
                 onDailyChange={(daily) => mutate((current) => ({ ...current, daily }))}
                 onToggleTask={toggleTask}
               />
@@ -385,6 +437,7 @@ export default function App() {
             <CardGrid
               cards={filteredCards}
               hasFilters={Boolean(query) || typeFilter !== "all"}
+              density={data.settings.cards.density}
               onCreateCard={openCreateCard}
               onEdit={(card) => {
                 setEditingCard(card);
@@ -402,6 +455,7 @@ export default function App() {
         open={editorOpen}
         spaceId={selectedSpace?.id ?? data.spaces[0]?.id ?? "daily"}
         card={editingCard}
+        defaultType={data.settings.cards.defaultType}
         onClose={() => setEditorOpen(false)}
         onSave={saveCard}
       />
@@ -437,6 +491,20 @@ export default function App() {
         confirmLabel={promptState?.type === "create" ? "Create" : "Save"}
         onConfirm={handlePromptConfirm}
         onCancel={() => setPromptState(null)}
+      />
+
+      <SettingsPanel
+        open={settingsOpen}
+        settings={data.settings}
+        onClose={() => setSettingsOpen(false)}
+        onChange={updateSettings}
+        onExport={() => downloadBackup(data)}
+        onImport={() => fileInputRef.current?.click()}
+        onReset={() => {
+          setSettingsOpen(false);
+          setConfirmResetOpen(true);
+        }}
+        storageInfo={storageInfo}
       />
     </div>
   );

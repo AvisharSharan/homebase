@@ -9,7 +9,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, action }: EmptyStateProps) {
   return (
-    <Card className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border-dashed border-white/[0.08] bg-ink-900/40 p-10 text-center animate-slide-up">
+    <Card className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border-dashed border-white/[0.08] bg-ink-900 p-10 text-center animate-slide-up">
       {/* Hexagonal placeholder echoing the logo mark */}
       <div className="mb-5 grid size-12 place-items-center rounded-xl border border-white/[0.08] bg-ink-850 text-stone-600">
         <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden>
