@@ -1,4 +1,4 @@
-import { MoreHorizontal, Plus, Settings, Trash2 } from "lucide-react";
+import { MoreHorizontal, Plus, Settings, Trash2, Sun, Moon } from "lucide-react";
 import { Space, SettingsData } from "../../types";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
@@ -16,6 +16,7 @@ interface SidebarProps {
   onImport: () => void;
   onReset: () => void;
   onOpenSettings: () => void;
+  onToggleTheme: () => void;
 }
 
 export function Sidebar({
@@ -31,12 +32,14 @@ export function Sidebar({
   onImport,
   onReset,
   onOpenSettings,
+  onToggleTheme,
 }: SidebarProps) {
   return (
     <aside className="flex h-full min-h-0 w-full flex-col border-r border-white/[0.07] bg-ink-950 px-3 py-5 md:w-64">
       {/* Logo / Brand */}
-      <div className="px-2 pb-5 border-b border-white/[0.07]">
-        <img src="/brand/homebase_logo.svg" alt="Homebase" className="h-9 w-auto object-contain" />
+      <div className="flex items-center gap-3 border-b border-white/[0.07] px-2 pb-5 pt-1">
+        <img src="/brand/homebase_logo_icon.svg" alt="" className="size-7 object-contain" />
+        <span className="text-xl font-bold tracking-tight text-bone-500">Homebase</span>
       </div>
 
       <TooltipProvider delayDuration={200}>
@@ -130,18 +133,32 @@ export function Sidebar({
                {settings.profile.displayName || "User"}
              </span>
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                onClick={onOpenSettings}
-                className="size-7 p-0 text-stone-400 hover:bg-white/10 hover:text-white rounded-md transition-colors shrink-0"
-              >
-                <Settings size={14} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Settings</TooltipContent>
-          </Tooltip>
+          <div className="flex items-center gap-1 shrink-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  onClick={onToggleTheme}
+                  className="size-7 p-0 text-stone-400 hover:bg-white/10 hover:text-white rounded-md transition-colors"
+                >
+                  {settings.appearance.theme === "snow" ? <Moon size={14} /> : <Sun size={14} />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Toggle light/dark mode</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  onClick={onOpenSettings}
+                  className="size-7 p-0 text-stone-400 hover:bg-white/10 hover:text-white rounded-md transition-colors"
+                >
+                  <Settings size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Settings</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       </footer>
       </TooltipProvider>

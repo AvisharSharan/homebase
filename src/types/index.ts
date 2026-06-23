@@ -62,6 +62,9 @@ export type CardDensity = "comfortable" | "compact";
 export type SortOrder = "newest" | "oldest" | "alphabetical";
 
 export interface SettingsData {
+  appearance: {
+    theme: "midnight" | "snow";
+  };
   profile: {
     displayName: string;
     avatar: string;

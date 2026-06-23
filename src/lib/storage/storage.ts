@@ -84,6 +84,7 @@ export function normalizeHomebaseData(parsed: any): HomebaseData {
     parsed.settings = defaultSettings;
   } else {
     parsed.settings = {
+      appearance: { ...defaultSettings.appearance, ...parsed.settings.appearance },
       profile: { ...defaultSettings.profile, ...parsed.settings.profile },
       cards: { ...defaultSettings.cards, ...parsed.settings.cards },
       daily: { ...defaultSettings.daily, ...parsed.settings.daily },
