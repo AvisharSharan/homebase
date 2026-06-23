@@ -6,6 +6,7 @@ import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
+import { FocusTimer } from "./FocusTimer";
 
 interface DailyPanelProps {
   daily: DailyState;
@@ -54,37 +55,53 @@ export function DailyPanel({ daily, dailyTasks, pinnedLinks, settings, onDailyCh
 
         {/* Mood chips */}
         <div className="flex flex-wrap gap-1.5">
-          {moods.map((mood) => (
-            <button
-              key={mood}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
-                daily.mood === mood
-                  ? "border-white/40 bg-white text-black"
-                  : "border-white/[0.07] bg-ink-850 text-stone-500 hover:border-white/14 hover:text-bone-400"
-              }`}
-              onClick={() => onDailyChange({ ...daily, mood })}
-            >
-              {mood}
-            </button>
-          ))}
+          {moods.map((mood) => {
+            const isLight = settings.appearance.theme === "snow";
+            const activeMoodColors: Record<string, string> = {
+              sharp: isLight ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-600" : "border-cyan-500/40 bg-cyan-500/10 text-cyan-400",
+              steady: isLight ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-600" : "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
+              calm: isLight ? "border-violet-500/50 bg-violet-500/10 text-violet-600" : "border-violet-500/40 bg-violet-500/10 text-violet-400",
+              tired: isLight ? "border-stone-500/50 bg-stone-500/10 text-stone-600" : "border-stone-500/40 bg-stone-500/10 text-stone-400",
+              restless: isLight ? "border-rose-500/50 bg-rose-500/10 text-rose-600" : "border-rose-500/40 bg-rose-500/10 text-rose-400",
+            };
+
+            return (
+              <button
+                key={mood}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+                  daily.mood === mood
+                    ? activeMoodColors[mood] || "border-white/40 bg-white text-black"
+                    : "border-white/[0.07] bg-ink-850 text-stone-500 hover:border-white/14 hover:text-bone-400"
+                }`}
+                onClick={() => onDailyChange({ ...daily, mood })}
+              >
+                {mood}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Focus + columns */}
       <CardContent className="p-5">
-        <div className="grid gap-2">
-          <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
-            Today's focus
-          </Label>
-          <Input
-            value={daily.focus}
-            onChange={(event) => onDailyChange({ ...daily, focus: event.target.value })}
-            placeholder="What matters most today?"
-            className="h-12 border-white/[0.07] bg-ink-850 text-xl font-semibold leading-tight text-bone-500 focus-visible:border-white/20 focus-visible:bg-ink-800"
-          />
+        <div className="flex flex-col sm:flex-row sm:items-start gap-6 mb-5">
+          <div className="grid gap-2 flex-1 min-w-0">
+            <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
+              Today's focus
+            </Label>
+            <Input
+              value={daily.focus}
+              onChange={(event) => onDailyChange({ ...daily, focus: event.target.value })}
+              placeholder="What matters most today?"
+              className="h-12 border-white/[0.07] bg-ink-850 text-xl font-semibold leading-tight text-bone-500 focus-visible:border-white/20 focus-visible:bg-ink-800"
+            />
+          </div>
+          <div className="hidden sm:block sm:mt-[18px]">
+            <FocusTimer mood={daily.mood} isLightMode={settings.appearance.theme === "snow"} />
+          </div>
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1.3fr_0.85fr_0.85fr]">
+        <div className="grid gap-4 lg:grid-cols-[1.3fr_0.85fr_0.85fr]">
           {settings.daily.showJournal && (
           <div className="grid gap-2">
             <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
