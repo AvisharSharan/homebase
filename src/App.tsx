@@ -142,6 +142,19 @@ export default function App() {
     setData((current) => ({ ...updater(current), updatedAt: new Date().toISOString() }));
   }
 
+  function toggleTheme() {
+    mutate((current) => ({
+      ...current,
+      settings: {
+        ...current.settings,
+        appearance: {
+          ...current.settings.appearance,
+          theme: current.settings.appearance.theme === "midnight" ? "snow" : "midnight",
+        },
+      },
+    }));
+  }
+
   function dismissWelcome(open: boolean, skip = false) {
     setWelcomeOpen(open);
     if (!open && !data.hasSeenWelcome) {
@@ -281,10 +294,26 @@ export default function App() {
     mutate((current) => ({ ...current, settings: next }));
   }
 
+  const isLightMode = data.settings.appearance.theme === "snow";
+  const moodMap: Record<string, { dark: string; light: string }> = {
+    sharp: { dark: "from-cyan-500/30 via-blue-500/30 to-indigo-500/30", light: "from-cyan-400/40 via-blue-400/40 to-indigo-400/40" },
+    steady: { dark: "from-emerald-500/30 via-teal-500/30 to-cyan-500/30", light: "from-emerald-400/40 via-teal-400/40 to-cyan-400/40" },
+    calm: { dark: "from-violet-500/30 via-purple-500/30 to-fuchsia-500/30", light: "from-violet-400/40 via-purple-400/40 to-fuchsia-400/40" },
+    tired: { dark: "from-stone-500/30 via-slate-500/30 to-zinc-500/30", light: "from-stone-400/40 via-slate-400/40 to-zinc-400/40" },
+    restless: { dark: "from-rose-500/30 via-orange-500/30 to-amber-500/30", light: "from-rose-400/40 via-orange-400/40 to-amber-400/40" },
+  };
+  const activeGradient = moodMap[data.daily.mood]?.[isLightMode ? "light" : "dark"] || moodMap["calm"][isLightMode ? "light" : "dark"];
+
   return (
     <div
-      className="flex h-screen overflow-hidden bg-ink-950 text-bone-500"
+      className="flex h-screen overflow-hidden bg-ink-950 text-bone-500 transition-colors"
+      data-theme={data.settings.appearance.theme}
     >
+      {/* Boot sequence pulsing gradient blob tied to mood */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center animate-boot-pulse-css overflow-visible">
+        <div className={`absolute -top-[125px] h-[200px] w-[1200px] rounded-[100%] bg-gradient-to-r ${activeGradient} blur-[80px] mix-blend-screen`} />
+      </div>
+
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <Sidebar
@@ -303,6 +332,7 @@ export default function App() {
           onImport={() => fileInputRef.current?.click()}
           onReset={() => setConfirmResetOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
+          onToggleTheme={toggleTheme}
         />
       </div>
 
