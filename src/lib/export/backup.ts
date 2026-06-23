@@ -1,5 +1,5 @@
 import { HomebaseData } from "../../types";
-import { validateHomebaseData } from "../storage/storage";
+import { validateHomebaseData, normalizeHomebaseData } from "../storage/storage";
 
 export function downloadBackup(data: HomebaseData) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -18,5 +18,5 @@ export async function readBackupFile(file: File): Promise<HomebaseData> {
   if (!validateHomebaseData(parsed)) {
     throw new Error("This file is not a valid Homebase backup.");
   }
-  return parsed;
+  return normalizeHomebaseData(parsed);
 }

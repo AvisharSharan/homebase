@@ -1,4 +1,5 @@
 import { blankData } from "../../data/sampleData";
+import { defaultSettings } from "../../data/defaults";
 import { CardType, HomebaseCard, HomebaseData, Space } from "../../types";
 
 const STORAGE_KEY = "homebase:data:v2";
@@ -75,6 +76,22 @@ export function validateHomebaseData(value: unknown): value is HomebaseData {
   );
 }
 
+export function normalizeHomebaseData(parsed: any): HomebaseData {
+  if (typeof parsed.hasSeenWelcome !== "boolean") {
+    parsed.hasSeenWelcome = true;
+  }
+  if (!parsed.settings || typeof parsed.settings !== "object") {
+    parsed.settings = defaultSettings;
+  } else {
+    parsed.settings = {
+      profile: { ...defaultSettings.profile, ...parsed.settings.profile },
+      cards: { ...defaultSettings.cards, ...parsed.settings.cards },
+      daily: { ...defaultSettings.daily, ...parsed.settings.daily },
+    };
+  }
+  return parsed;
+}
+
 export function loadHomebaseData(): HomebaseData {
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (!stored) return blankData;
@@ -82,10 +99,7 @@ export function loadHomebaseData(): HomebaseData {
   try {
     const parsed = JSON.parse(stored);
     if (validateHomebaseData(parsed)) {
-      if (typeof parsed.hasSeenWelcome !== "boolean") {
-        parsed.hasSeenWelcome = true; // Assume existing users have seen it
-      }
-      return parsed;
+      return normalizeHomebaseData(parsed);
     }
     return blankData;
   } catch {

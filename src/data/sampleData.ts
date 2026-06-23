@@ -1,4 +1,5 @@
 import { HomebaseData } from "../types";
+import { defaultSettings } from "./defaults";
 
 const now = new Date().toISOString();
 
@@ -43,5 +44,6 @@ export const blankData: HomebaseData = {
     }
   ],
   hasSeenWelcome: false,
+  settings: defaultSettings,
   updatedAt: now,
 };

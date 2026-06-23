@@ -57,11 +57,34 @@ export interface DailyState {
   mood: string;
 }
 
+
+export type CardDensity = "comfortable" | "compact";
+export type SortOrder = "newest" | "oldest" | "alphabetical";
+
+export interface SettingsData {
+  profile: {
+    displayName: string;
+    avatar: string;
+  };
+
+  cards: {
+    defaultType: CardType;
+    density: CardDensity;
+    sortOrder: SortOrder;
+  };
+  daily: {
+    showJournal: boolean;
+    showPinnedLinks: boolean;
+    greetingText: string;
+  };
+}
+
 export interface HomebaseData {
   version: number;
   spaces: Space[];
   cards: HomebaseCard[];
   daily: DailyState;
   hasSeenWelcome: boolean;
+  settings: SettingsData;
   updatedAt: string;
 }
