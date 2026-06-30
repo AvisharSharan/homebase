@@ -8,6 +8,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const typeIcons: Record<CardType, typeof FileText> = {
   note: FileText,
@@ -28,8 +30,30 @@ interface CardViewProps {
 export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: CardViewProps) {
   const Icon = typeIcons[card.type];
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: card.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.8 : undefined,
+  };
+
   return (
-    <Card className="group relative flex min-h-[200px] flex-col rounded-xl border border-white/[0.07] bg-ink-900 shadow-card transition-all duration-200 hover:border-white/[0.13] hover:shadow-card-hover hover:-translate-y-px">
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`group relative flex min-h-[200px] flex-col rounded-xl border border-white/[0.07] bg-ink-900 shadow-card transition-all duration-200 hover:border-white/[0.13] hover:shadow-card-hover ${isDragging ? 'cursor-grabbing border-white/20' : 'cursor-grab hover:-translate-y-px'}`}
+    >
       {/* Pinned green top strip */}
       {card.pinned && (
         <div className="absolute top-0 left-4 right-4 h-[2px] rounded-b-full bg-green-500/60" />

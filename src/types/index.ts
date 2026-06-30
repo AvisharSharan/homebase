@@ -59,7 +59,7 @@ export interface DailyState {
 
 
 export type CardDensity = "comfortable" | "compact";
-export type SortOrder = "newest" | "oldest" | "alphabetical";
+export type SortOrder = "newest" | "oldest" | "alphabetical" | "manual";
 
 export interface SettingsData {
   appearance: {
