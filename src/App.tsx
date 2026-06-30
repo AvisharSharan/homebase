@@ -4,6 +4,7 @@ import { CardEditor } from "./components/cards/CardEditor";
 import { CardGrid } from "./components/cards/CardGrid";
 import { DailyPanel } from "./components/daily/DailyPanel";
 import { GlobalSearch } from "./components/search/GlobalSearch";
+import { CommandPalette } from "./components/search/CommandPalette";
 import { SettingsPanel } from "./components/settings/SettingsPanel";
 import { Sidebar } from "./components/spaces/Sidebar";
 import { Button } from "./components/ui/button";
@@ -17,6 +18,7 @@ import { createId } from "./lib/id";
 import { loadHomebaseData, saveHomebaseData } from "./lib/storage/storage";
 import { CardType, HomebaseCard, HomebaseData, SettingsData, Space } from "./types";
 import { blankData } from "./data/sampleData";
+import { arrayMove } from "@dnd-kit/sortable";
 
 const allTypes: Array<CardType | "all"> = ["all", "note", "task", "link", "reference", "snippet"];
 
@@ -50,6 +52,12 @@ function cardMatches(card: HomebaseCard, spaceName: string, query: string) {
 }
 
 function sortCards(cards: HomebaseCard[], sortOrder: string = "newest") {
+  if (sortOrder === "manual") {
+    return [...cards].sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return 0; // keep original array order for unpinned/pinned groups
+    });
+  }
   return [...cards].sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
     if (sortOrder === "alphabetical") return a.title.localeCompare(b.title);
@@ -73,6 +81,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [welcomeOpen, setWelcomeOpen] = useState(!data.hasSeenWelcome);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -81,11 +90,10 @@ export default function App() {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Ctrl/Cmd + K: Focus search
+      // Ctrl/Cmd + K: Toggle Command Palette
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        const searchInput = document.querySelector('input[placeholder="Search spaces, cards, tags..."]') as HTMLInputElement;
-        searchInput?.focus();
+        setCommandPaletteOpen((prev) => !prev);
       }
       
       // Ctrl/Cmd + E: Toggle editor
@@ -101,6 +109,17 @@ export default function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", data.settings.appearance.theme);
+    // NOTE: hardcoded to "white" — this means the accent color CSS variants
+    // defined in styles.css (data-accent="blue"/"violet"/"rose"/"amber"/
+    // "emerald"/"cyan") are currently unreachable dead code, and any accent
+    // picker UI in Settings has no visible effect. If `appearance` has an
+    // accent field, wire it in here, e.g.:
+    //   document.documentElement.setAttribute("data-accent", data.settings.appearance.accent ?? "white");
+    document.documentElement.setAttribute("data-accent", "white");
+  }, [data.settings.appearance.theme]);
 
   const selectedSpace = data.spaces.find((space) => space.id === selectedSpaceId) ?? data.spaces[0];
 
@@ -143,16 +162,24 @@ export default function App() {
   }
 
   function toggleTheme() {
-    mutate((current) => ({
-      ...current,
-      settings: {
-        ...current.settings,
-        appearance: {
-          ...current.settings.appearance,
-          theme: current.settings.appearance.theme === "midnight" ? "snow" : "midnight",
+    // Snow is currently the only light theme; isLightMode below mirrors this.
+    // If a light theme is ever added besides "snow", both this set and the
+    // isLightMode check further down need to be updated together.
+    const lightThemes = new Set(["snow"]);
+    mutate((current) => {
+      const currentTheme = current.settings.appearance.theme;
+      const nextTheme = lightThemes.has(currentTheme) ? "midnight" : "snow";
+      return {
+        ...current,
+        settings: {
+          ...current.settings,
+          appearance: {
+            ...current.settings.appearance,
+            theme: nextTheme,
+          },
         },
-      },
-    }));
+      };
+    });
   }
 
   function dismissWelcome(open: boolean, skip = false) {
@@ -273,6 +300,28 @@ export default function App() {
     setWelcomeOpen(true);
   }
 
+  function handleDragEnd(event: any) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      mutate((current) => {
+        const oldIndex = current.cards.findIndex((c) => c.id === active.id);
+        const newIndex = current.cards.findIndex((c) => c.id === over.id);
+        
+        return {
+          ...current,
+          cards: arrayMove(current.cards, oldIndex, newIndex),
+          settings: {
+            ...current.settings,
+            cards: {
+              ...current.settings.cards,
+              sortOrder: "manual",
+            }
+          }
+        };
+      });
+    }
+  }
+
   const deleteTitle = pendingDelete?.kind === "space" ? "Delete space?" : "Delete card?";
   const deleteDescription =
     pendingDelete?.kind === "space"
@@ -294,7 +343,7 @@ export default function App() {
     mutate((current) => ({ ...current, settings: next }));
   }
 
-  const isLightMode = data.settings.appearance.theme === "snow";
+  const isLightMode = data.settings.appearance.theme === "snow"; // keep in sync with `lightThemes` in toggleTheme
   const moodMap: Record<string, { dark: string; light: string }> = {
     sharp: { dark: "from-cyan-500/30 via-blue-500/30 to-indigo-500/30", light: "from-cyan-400/40 via-blue-400/40 to-indigo-400/40" },
     steady: { dark: "from-emerald-500/30 via-teal-500/30 to-cyan-500/30", light: "from-emerald-400/40 via-teal-400/40 to-cyan-400/40" },
@@ -477,6 +526,7 @@ export default function App() {
               onDelete={(card) => setPendingDelete({ kind: "card", card })}
               onTogglePin={togglePin}
               onToggleTask={toggleTask}
+              onDragEnd={handleDragEnd}
             />
           </div>
         </section>
@@ -536,6 +586,34 @@ export default function App() {
           setConfirmResetOpen(true);
         }}
         storageInfo={storageInfo}
+      />
+
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        spaces={data.spaces}
+        cards={data.cards}
+        onSelectSpace={setSelectedSpaceId}
+        onCreateCard={(type) => {
+          mutate((current) => ({
+            ...current,
+            settings: {
+              ...current.settings,
+              cards: {
+                ...current.settings.cards,
+                defaultType: type,
+              },
+            },
+          }));
+          setEditingCard(null);
+          setEditorOpen(true);
+        }}
+        onToggleTheme={toggleTheme}
+        onSelectCard={(card) => {
+          setSelectedSpaceId(card.spaceId);
+          setEditingCard(card);
+          setEditorOpen(true);
+        }}
       />
     </div>
   );
