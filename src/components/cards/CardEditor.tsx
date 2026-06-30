@@ -89,7 +89,7 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg border-l border-white/[0.07] bg-ink-900 p-0 flex flex-col gap-0 shadow-panel">
+      <SheetContent className="w-full sm:max-w-lg border-l border-white/[0.07] bg-ink-900 p-0 flex flex-col gap-0 shadow-panel text-bone-500">
         {/* Drawer header */}
         <SheetHeader className="border-b border-white/[0.06] px-5 py-4 text-left">
           <SheetTitle className="text-base font-semibold text-bone-500">{drawerTitle}</SheetTitle>

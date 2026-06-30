@@ -77,7 +77,7 @@ export function PromptDialog({
           <AlertDialogAction 
             onClick={handleConfirm} 
             disabled={!value.trim()}
-            className="bg-bone-500 text-ink-950 hover:bg-white disabled:opacity-50"
+            className="bg-bone-500 text-ink-950 hover:bg-bone-400 disabled:opacity-50"
           >
             {confirmLabel}
           </AlertDialogAction>

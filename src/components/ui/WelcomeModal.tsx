@@ -73,7 +73,7 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={() => onComplete(false)}
-            className="w-full sm:w-auto bg-bone-500 text-ink-950 hover:bg-white font-medium"
+            className="w-full sm:w-auto bg-bone-500 text-ink-950 hover:bg-bone-400 font-medium"
           >
             Get Started
           </AlertDialogAction>

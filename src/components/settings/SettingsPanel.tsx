@@ -113,7 +113,7 @@ export function SettingsPanel({
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent
         side="right"
-        className="w-full p-0 sm:max-w-2xl border-white/[0.07] bg-ink-950"
+        className="w-full p-0 sm:max-w-2xl border-white/[0.07] bg-ink-950 text-bone-500"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Settings</SheetTitle>

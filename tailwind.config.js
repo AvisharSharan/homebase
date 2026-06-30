@@ -68,6 +68,10 @@ export default {
           muted: "var(--hb-accent-muted)",
           text: "var(--hb-accent-text)",
         },
+        "ui-accent": {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",

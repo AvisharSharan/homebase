@@ -45,7 +45,7 @@ export function ConfirmDialog({
           </div>
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-5 sm:justify-end gap-2">
-          <AlertDialogCancel onClick={onCancel} className="mt-0 border-white/8 bg-ink-800 hover:bg-ink-700 hover:text-bone-500 text-stone-400 transition">
+          <AlertDialogCancel onClick={onCancel} className="mt-0 border-white/10 bg-ink-800 hover:bg-ink-700 hover:text-bone-500 text-stone-400 transition">
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} className={buttonVariants({ variant: "destructive" })}>

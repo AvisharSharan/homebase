@@ -65,7 +65,7 @@ export function FocusTimer({ mood, isLightMode }: FocusTimerProps) {
             cx="28"
             cy="28"
             r={radius}
-            className="stroke-white/[0.05] fill-none"
+            className={`fill-none ${isLightMode ? "stroke-black/[0.06]" : "stroke-white/[0.05]"}`}
             strokeWidth="3"
           />
           <circle
