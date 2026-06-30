@@ -6,6 +6,14 @@
 @tailwind utilities;
 @layer base {
   :root {
+    /* These shadcn/ui design tokens are consumed globally (e.g. the
+       `* { @apply border-border }` rule below, plus bg-primary,
+       bg-secondary, bg-accent, border-border usage inside shadcn
+       components like Select/Tooltip/Dialog). They previously stayed
+       hardcoded to dark values for EVERY theme, which is why shadcn-derived
+       UI (menus, popovers, dialogs, selects) didn't follow Snow's light
+       palette even though the custom --hb-* tokens did. This block is the
+       dark-theme default; Snow overrides it below. */
     --background: 0 0% 3%;
     --foreground: 30 14% 94%;
     --card: 0 0% 6%;
@@ -116,6 +124,31 @@
 }
 
 [data-theme="snow"] {
+  /* shadcn/ui HSL tokens flipped to light values. Without this block,
+     any component using border-border, bg-card, bg-popover, bg-primary,
+     bg-secondary, or bg-muted (the shadcn --accent token, separate from
+     the app's own --hb-accent) silently stays dark even when data-theme
+     is "snow". */
+  --background: 40 20% 96%;
+  --foreground: 0 0% 10%;
+  --card: 40 20% 98%;
+  --card-foreground: 0 0% 10%;
+  --popover: 40 20% 98%;
+  --popover-foreground: 0 0% 10%;
+  --primary: 0 0% 10%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 40 10% 91%;
+  --secondary-foreground: 0 0% 10%;
+  --muted: 40 10% 91%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 40 10% 91%;
+  --accent-foreground: 0 0% 10%;
+  --destructive: 0 71% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 88%;
+  --input: 0 0% 88%;
+  --ring: 0 0% 10%;
+
   --hb-ink-950: #f5f4f2;
   --hb-ink-900: #ffffff;
   --hb-ink-850: #eeedeb;
@@ -310,49 +343,76 @@ select option {
   color: var(--hb-bone-500);
 }
 
-/* ─── Snow theme: override white-opacity borders to black-opacity ─── */
-[data-theme="snow"] [class*="border-white/"] {
+/* ─── Snow theme: override white-opacity decorative utilities to black-opacity ───
+   Covers border/ring/divide/outline/shadow/from/via/to so any new utility
+   built on a `white/x` opacity class is automatically corrected, rather than
+   requiring every Tailwind variant to be enumerated by hand. */
+[data-theme="snow"] [class*="border-white/"],
+[data-theme="snow"] [class*="divide-white/"],
+[data-theme="snow"] [class*="outline-white/"],
+[data-theme="snow"] [class*="ring-white/"],
+[data-theme="snow"] [class*="shadow-white/"] {
+  --tw-border-opacity: 1;
   border-color: rgba(0, 0, 0, 0.06) !important;
-}
-
-[data-theme="snow"] [class*="hover:border-white/"]:hover {
-  border-color: rgba(0, 0, 0, 0.16) !important;
-}
-
-[data-theme="snow"] [class*="focus-visible:border-white/"]:focus-visible {
-  border-color: rgba(0, 0, 0, 0.25) !important;
-}
-
-[data-theme="snow"] [class*="ring-white/"] {
   --tw-ring-color: rgba(0, 0, 0, 0.15) !important;
 }
 
-/* Snow: fix white backgrounds and text on buttons/interactive */
-[data-theme="snow"] .bg-white {
+[data-theme="snow"] [class*="hover\:border-white/"]:hover,
+[data-theme="snow"] [class*="hover\:ring-white/"]:hover {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+  --tw-ring-color: rgba(0, 0, 0, 0.25) !important;
+}
+
+[data-theme="snow"] [class*="focus-visible\:border-white/"]:focus-visible,
+[data-theme="snow"] [class*="focus-visible\:ring-white/"]:focus-visible {
+  border-color: rgba(0, 0, 0, 0.25) !important;
+  --tw-ring-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="snow"] [class*="from-white/"] {
+  --tw-gradient-from: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme="snow"] [class*="via-white/"] {
+  --tw-gradient-via: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme="snow"] [class*="to-white/"] {
+  --tw-gradient-to: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ─── Snow theme: fix literal white/black utilities ───
+   IMPORTANT: these only apply to genuinely *literal* `bg-white`, `text-white`,
+   `text-black` classes used as one-off utility overrides in markup — NOT to
+   anything using the `--hb-accent` / `--hb-accent-text` token system (the
+   `bg-accent`, `text-accent-text` classes are untouched and already flip
+   correctly per-theme via the [data-theme="snow"][data-accent="..."] rules
+   above). Mixing literal Tailwind white/black classes with the accent-token
+   classes on the same element will still conflict — prefer the accent tokens
+   in components rather than literal white/black classes. */
+[data-theme="snow"] .bg-white:not(.bg-accent) {
   background-color: #1a1a1a !important;
 }
-[data-theme="snow"] .text-black {
+[data-theme="snow"] .text-black:not(.text-accent-text) {
   color: #ffffff !important;
 }
-[data-theme="snow"] .text-white {
+[data-theme="snow"] .text-white:not(.text-accent-text) {
   color: #1a1a1a !important;
 }
-[data-theme="snow"] [class*="hover:bg-white"]:hover {
+[data-theme="snow"] [class~="hover\:bg-white"]:not(.bg-accent):hover {
   background-color: #1a1a1a !important;
 }
-[data-theme="snow"] [class*="hover:text-black"]:hover {
+[data-theme="snow"] [class*="hover\:text-black"]:not(.text-accent-text):hover {
   color: #ffffff !important;
 }
-[data-theme="snow"] [class*="hover:text-white"]:hover {
+[data-theme="snow"] [class~="hover\:text-white"]:not(.text-accent-text):hover {
   color: #1a1a1a !important;
 }
-[data-theme="snow"] [class*="focus:text-white"]:focus {
+[data-theme="snow"] [class~="focus\:text-white"]:not(.text-accent-text):focus {
   color: #1a1a1a !important;
 }
 [data-theme="snow"] [class*="bg-white/"] {
   background-color: rgba(0, 0, 0, 0.05) !important;
 }
-[data-theme="snow"] [class*="hover:bg-white/"]:hover {
+[data-theme="snow"] [class*="hover\:bg-white/"]:hover {
   background-color: rgba(0, 0, 0, 0.08) !important;
 }
 
@@ -370,9 +430,18 @@ select option {
   filter: invert(1);
 }
 
-/* Snow: warm light-mode boot gradient */
+/* Snow: warm light-mode boot gradient.
+   The blob's color/opacity values are tuned for `mix-blend-screen` over a
+   near-black background (--hb-ink-950 ≈ #080808), which lightens on top of
+   dark and stays nearly invisible to the eye, which is the desired subtle
+   effect. On Snow's near-white background that same blend mode does the
+   opposite: it amplifies onto white and can render as a flat, oversaturated
+   bar instead of a soft pulse. Switching to `multiply` (darkens against
+   light backgrounds) plus a reduced opacity keeps the same gentle pulse
+   feel in light mode. */
 [data-theme="snow"] .animate-boot-pulse-css > div {
-  mix-blend-mode: normal !important;
+  mix-blend-mode: multiply !important;
+  opacity: 0.55;
 }
 
 /* Snow: fix ring-offset for accent swatches */
