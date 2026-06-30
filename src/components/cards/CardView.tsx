@@ -52,7 +52,7 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
       style={style}
       {...attributes}
       {...listeners}
-      className={`group relative flex min-h-[200px] flex-col rounded-xl border border-white/[0.07] bg-ink-900 shadow-card transition-all duration-200 hover:border-white/[0.13] hover:shadow-card-hover ${isDragging ? 'cursor-grabbing border-white/20' : 'cursor-grab hover:-translate-y-px'}`}
+      className={`group relative flex min-h-[200px] flex-col rounded-xl border border-white/[0.07] bg-ink-900 shadow-card hover:border-white/[0.13] hover:shadow-card-hover ${isDragging ? 'cursor-grabbing border-white/20' : 'transition-all duration-200 cursor-grab hover:-translate-y-px'}`}
     >
       {/* Pinned green top strip */}
       {card.pinned && (
