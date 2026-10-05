@@ -1,9 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
 @import "highlight.js/styles/github-dark.css";
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@config "../tailwind.config.js";
 @layer base {
   :root {
     /* These shadcn/ui design tokens are consumed globally (e.g. the
@@ -49,8 +46,8 @@
     --hb-bone-300: #979593;
 
     /* ─── Stone palette (muted) ─── */
-    --hb-stone-600: #606060;
-    --hb-stone-500: #787878;
+    --hb-stone-600: #909090;
+    --hb-stone-500: #989898;
     --hb-stone-400: #989898;
     --hb-stone-300: #c0c0c0;
     --hb-stone-200: #e0e0e0;
@@ -79,8 +76,8 @@
   --hb-bone-500: #f0eeeb;
   --hb-bone-400: #c8c6c3;
   --hb-bone-300: #979593;
-  --hb-stone-600: #606060;
-  --hb-stone-500: #787878;
+  --hb-stone-600: #909090;
+  --hb-stone-500: #989898;
   --hb-stone-400: #989898;
   --hb-stone-300: #c0c0c0;
   --hb-stone-200: #e0e0e0;
@@ -158,8 +155,8 @@
   --hb-bone-500: #1a1a1a;
   --hb-bone-400: #4a4a4a;
   --hb-bone-300: #6a6a6a;
-  --hb-stone-600: #9a9a9a;
-  --hb-stone-500: #888888;
+  --hb-stone-600: #646464;
+  --hb-stone-500: #626262;
   --hb-stone-400: #6e6e6e;
   --hb-stone-300: #555555;
   --hb-stone-200: #404040;
@@ -495,5 +492,27 @@ select option {
 
 .animate-boot-pulse-css > div {
   background-size: 200% 200% !important;
-  animation: gradientWave 3s ease-in-out infinite;
+  animation: gradientWave 4.5s ease-in-out 1;
+}
+
+.hb-markdown { overflow-wrap: anywhere; }
+.hb-markdown :not(pre) > code {
+  color: var(--hb-bone-400);
+  background: var(--hb-ink-800);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.hb-markdown pre { max-width: 100%; overflow-x: auto; }
+.hb-markdown table { display: block; overflow-x: auto; }
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--hb-bone-400);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

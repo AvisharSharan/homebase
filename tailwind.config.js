@@ -22,6 +22,7 @@ export default {
           300: "var(--hb-bone-300)",
         },
         stone: {
+          700: "var(--hb-stone-600)",
           600: "var(--hb-stone-600)",
           500: "var(--hb-stone-500)",
           400: "var(--hb-stone-400)",
