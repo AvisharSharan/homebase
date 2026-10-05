@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Check, Link2, StickyNote } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { DailyState, HomebaseCard, SettingsData } from "../../types";
 import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
@@ -7,6 +7,7 @@ import { Textarea } from "../ui/textarea";
 import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
 import { FocusTimer } from "./FocusTimer";
+import { safeWebUrl } from "../../lib/url";
 
 interface DailyPanelProps {
   daily: DailyState;
@@ -45,7 +46,7 @@ export function DailyPanel({ daily, dailyTasks, pinnedLinks, settings, onDailyCh
       <div className="flex flex-col gap-4 border-b border-white/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-bone-500 tracking-tight">
-            {randomGreeting}
+            {settings.daily.greetingText || randomGreeting}
             {settings.profile.displayName ? `, ${settings.profile.displayName}` : ""}
           </h1>
           <p className="mt-1.5 text-sm text-stone-500">
@@ -67,6 +68,7 @@ export function DailyPanel({ daily, dailyTasks, pinnedLinks, settings, onDailyCh
 
             return (
               <button
+                aria-pressed={daily.mood === mood}
                 key={mood}
                 className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
                   daily.mood === mood
@@ -86,28 +88,30 @@ export function DailyPanel({ daily, dailyTasks, pinnedLinks, settings, onDailyCh
       <CardContent className="p-5">
         <div className="flex flex-col sm:flex-row sm:items-start gap-6 mb-5">
           <div className="grid gap-2 flex-1 min-w-0">
-            <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
+            <Label htmlFor="daily-focus" className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
               Today's focus
             </Label>
             <Input
+              id="daily-focus"
               value={daily.focus}
               onChange={(event) => onDailyChange({ ...daily, focus: event.target.value })}
               placeholder="What matters most today?"
               className="h-12 border-white/[0.07] bg-ink-850 text-xl font-semibold leading-tight text-bone-500 focus-visible:border-white/20 focus-visible:bg-ink-800"
             />
           </div>
-          <div className="hidden sm:block sm:mt-[18px]">
+          <div className="sm:mt-[18px]">
             <FocusTimer mood={daily.mood} isLightMode={settings.appearance.theme === "snow"} />
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1.3fr_0.85fr_0.85fr]">
+        <div className={`grid gap-4 ${settings.daily.showJournal && settings.daily.showPinnedLinks ? "lg:grid-cols-3" : settings.daily.showJournal || settings.daily.showPinnedLinks ? "lg:grid-cols-2" : ""}`}>
           {settings.daily.showJournal && (
           <div className="grid gap-2">
-            <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
+            <Label htmlFor="daily-notes" className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
               Quick notes
             </Label>
             <Textarea
+              id="daily-notes"
               value={daily.quickNotes}
               onChange={(event) => onDailyChange({ ...daily, quickNotes: event.target.value })}
               rows={5}
@@ -130,17 +134,18 @@ export function DailyPanel({ daily, dailyTasks, pinnedLinks, settings, onDailyCh
               ) : null}
               {dailyTasks.flatMap((card) =>
                 card.type === "task"
-                  ? card.tasks.slice(0, 5).map((task) => (
+                  ? card.tasks.map((task) => (
                       <label
                         key={`${card.id}-${task.id}`}
                         className="flex w-full items-center gap-2.5 rounded-lg border border-white/[0.05] bg-ink-850 px-3 py-2 text-left text-xs text-bone-400 transition hover:border-white/10 hover:text-bone-300 cursor-pointer"
                       >
                         <Checkbox
+                          aria-label={task.text}
                           checked={task.completed}
                           onCheckedChange={() => onToggleTask(card.id, task.id)}
                           className="border-white/15 data-[state=checked]:bg-green-500/15 data-[state=checked]:text-green-400 data-[state=checked]:border-green-500/50"
                         />
-                        <span className={task.completed ? "text-stone-600 line-through" : ""}>
+                        <span className={`min-w-0 [overflow-wrap:anywhere] ${task.completed ? "text-stone-600 line-through" : ""}`}>
                           {task.text}
                         </span>
                       </label>
@@ -161,13 +166,13 @@ export function DailyPanel({ daily, dailyTasks, pinnedLinks, settings, onDailyCh
                   Pin links to keep them here.
                 </p>
               ) : null}
-              {pinnedLinks.slice(0, 4).map((card) =>
-                card.type === "link" ? (
+              {pinnedLinks.map((card) =>
+                card.type === "link" && safeWebUrl(card.url) ? (
                   <a
                     key={card.id}
-                    href={card.url}
+                    href={safeWebUrl(card.url)}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="flex items-center gap-2.5 rounded-lg border border-white/[0.05] bg-ink-850 px-3 py-2 text-xs text-bone-400 transition hover:border-white/12 hover:text-bone-300"
                   >
                     <Link2 size={14} className="shrink-0 text-green-500" />

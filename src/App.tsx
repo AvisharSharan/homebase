@@ -1,11 +1,8 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, lazy, Suspense, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Filter, Menu, Plus, X } from "lucide-react";
-import { CardEditor } from "./components/cards/CardEditor";
 import { CardGrid } from "./components/cards/CardGrid";
 import { DailyPanel } from "./components/daily/DailyPanel";
 import { GlobalSearch } from "./components/search/GlobalSearch";
-import { CommandPalette } from "./components/search/CommandPalette";
-import { SettingsPanel } from "./components/settings/SettingsPanel";
 import { Sidebar } from "./components/spaces/Sidebar";
 import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/ConfirmDialog";
@@ -13,12 +10,18 @@ import { PromptDialog } from "./components/ui/PromptDialog";
 import { WelcomeModal } from "./components/ui/WelcomeModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
-import { downloadBackup, readBackupFile } from "./lib/export/backup";
+import { downloadBackup, downloadText, readBackupFile } from "./lib/export/backup";
 import { createId } from "./lib/id";
-import { loadHomebaseData, saveHomebaseData } from "./lib/storage/storage";
+import { getStorageWarning, loadHomebaseData, readRecoveryData, saveHomebaseData } from "./lib/storage/storage";
 import { CardType, HomebaseCard, HomebaseData, SettingsData, Space } from "./types";
 import { blankData } from "./data/sampleData";
-import { arrayMove } from "@dnd-kit/sortable";
+import { reorderCards } from "./lib/cards";
+import { DragEndEvent } from "@dnd-kit/core";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./components/ui/sheet";
+
+const CardEditor = lazy(() => import("./components/cards/CardEditor").then(m => ({ default: m.CardEditor })));
+const SettingsPanel = lazy(() => import("./components/settings/SettingsPanel").then(m => ({ default: m.SettingsPanel })));
+const CommandPalette = lazy(() => import("./components/search/CommandPalette").then(m => ({ default: m.CommandPalette })));
 
 const allTypes: Array<CardType | "all"> = ["all", "note", "task", "link", "reference", "snippet"];
 
@@ -73,42 +76,67 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<CardType | "all">("all");
   const [editorOpen, setEditorOpen] = useState(false);
+  const [createType, setCreateType] = useState<CardType | undefined>();
   const [editingCard, setEditingCard] = useState<HomebaseCard | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
   const [promptState, setPromptState] = useState<PromptState>(null);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(getStorageWarning);
+  const [saveError, setSaveError] = useState("");
+  const [pendingImport, setPendingImport] = useState<HomebaseData | null>(null);
   const [welcomeOpen, setWelcomeOpen] = useState(!data.hasSeenWelcome);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedDataRef = useRef(data);
 
   useEffect(() => {
-    saveHomebaseData(data);
+    if (data === savedDataRef.current) return;
+    const save = () => {
+      if (data === savedDataRef.current) return;
+      try {
+        saveHomebaseData(data);
+        savedDataRef.current = data;
+        setSaveError("");
+      } catch (error) {
+        setSaveError(error instanceof Error && error.message.includes("another tab")
+          ? error.message : "Changes could not be saved to browser storage. Export a backup before closing.");
+      }
+    };
+    const timeout = window.setTimeout(save, 300);
+    window.addEventListener("pagehide", save);
+    const onVisibility = () => { if (document.visibilityState === "hidden") save(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearTimeout(timeout);
+      window.removeEventListener("pagehide", save);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [data]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if (welcomeOpen || settingsOpen || promptState || pendingDelete || pendingImport || confirmResetOpen) return;
       // Ctrl/Cmd + K: Toggle Command Palette
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        if (editorOpen) return;
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
       }
       
       // Ctrl/Cmd + E: Toggle editor
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
+        if (commandPaletteOpen) return;
         e.preventDefault();
-        setEditorOpen((prev) => {
-          if (!prev) setEditingCard(null); // clear editing state when opening
-          return !prev;
-        });
+        if (!editorOpen) { setEditingCard(null); setCreateType(undefined); }
+        setEditorOpen(!editorOpen);
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [welcomeOpen, settingsOpen, promptState, pendingDelete, pendingImport, confirmResetOpen, editorOpen, commandPaletteOpen]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", data.settings.appearance.theme);
@@ -133,29 +161,30 @@ export default function App() {
     return data.cards.reduce<Record<string, number>>((counts, card) => {
       counts[card.spaceId] = (counts[card.spaceId] ?? 0) + 1;
       return counts;
-    }, {});
+    }, Object.create(null) as Record<string, number>);
   }, [data.cards]);
 
-  const searchQuery = normalize(query);
+  const searchQuery = useDeferredValue(normalize(query));
+  const isSearching = !!searchQuery;
+  const spacesById = useMemo(() => new Map(data.spaces.map(space => [space.id, space.name])), [data.spaces]);
   const filteredCards = useMemo(() => {
     return sortCards(
       data.cards.filter((card) => {
-        const space = data.spaces.find((item) => item.id === card.spaceId);
-        const inCurrentSpace = query ? true : card.spaceId === selectedSpace?.id;
+        const inCurrentSpace = isSearching ? true : card.spaceId === selectedSpace?.id;
         const matchesType = typeFilter === "all" || card.type === typeFilter;
-        return inCurrentSpace && matchesType && cardMatches(card, space?.name ?? "", searchQuery);
+        return inCurrentSpace && matchesType && cardMatches(card, spacesById.get(card.spaceId) ?? "", searchQuery);
       }),
       data.settings.cards.sortOrder,
     );
-  }, [data.cards, data.spaces, data.settings.cards.sortOrder, query, searchQuery, selectedSpace?.id, typeFilter]);
+  }, [data.cards, spacesById, data.settings.cards.sortOrder, isSearching, searchQuery, selectedSpace?.id, typeFilter]);
 
-  const resultCount = query
+  const resultCount = isSearching
     ? filteredCards.length +
       data.spaces.filter((space) => normalize(space.name).includes(searchQuery)).length
     : 0;
 
-  const dailyTaskCards = data.cards.filter((card) => card.spaceId === "daily" && card.type === "task");
-  const pinnedLinks = data.cards.filter((card) => card.type === "link" && card.pinned);
+  const dailyTaskCards = useMemo(() => data.cards.filter((card) => card.spaceId === "daily" && card.type === "task"), [data.cards]);
+  const pinnedLinks = useMemo(() => data.cards.filter((card) => card.type === "link" && card.pinned), [data.cards]);
 
   function mutate(updater: (current: HomebaseData) => HomebaseData) {
     setData((current) => ({ ...updater(current), updatedAt: new Date().toISOString() }));
@@ -196,6 +225,7 @@ export default function App() {
   }
 
   function openCreateCard() {
+    setCreateType(undefined);
     setEditingCard(null);
     setEditorOpen(true);
   }
@@ -244,6 +274,7 @@ export default function App() {
     if (pendingDelete.kind === "card") {
       mutate((current) => ({ ...current, cards: current.cards.filter((card) => card.id !== pendingDelete.card.id) }));
     } else {
+      if (pendingDelete.space.id === "daily") return;
       mutate((current) => ({
         ...current,
         spaces: current.spaces.filter((space) => space.id !== pendingDelete.space.id),
@@ -283,33 +314,32 @@ export default function App() {
     if (!file) return;
     try {
       const imported = await readBackupFile(file);
-      const approved = window.confirm("Import this backup and replace all current Homebase data?");
-      if (!approved) return;
-      setData(imported);
-      setSelectedSpaceId(imported.spaces[0]?.id ?? "daily");
-      setNotice("Backup imported successfully.");
+      setSettingsOpen(false);
+      setPendingImport(imported);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not import backup.");
     }
   }
 
   function resetApp() {
-    setData(blankData);
+    setData(structuredClone(blankData));
     setSelectedSpaceId("daily");
     setConfirmResetOpen(false);
     setWelcomeOpen(true);
+    setQuery("");
+    setTypeFilter("all");
   }
 
-  function handleDragEnd(event: any) {
+  function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       mutate((current) => {
-        const oldIndex = current.cards.findIndex((c) => c.id === active.id);
-        const newIndex = current.cards.findIndex((c) => c.id === over.id);
+        const reordered = reorderCards(current.cards, filteredCards.map(card => card.id), String(active.id), String(over.id));
+        if (reordered === current.cards) return current;
         
         return {
           ...current,
-          cards: arrayMove(current.cards, oldIndex, newIndex),
+          cards: reordered,
           settings: {
             ...current.settings,
             cards: {
@@ -331,13 +361,27 @@ export default function App() {
         : "";
 
   const storageInfo = useMemo(() => {
-    const raw = window.localStorage.getItem("homebase:data:v2") ?? "";
+    const raw = JSON.stringify(data);
     return {
       used: new Blob([raw]).size,
       cardCount: data.cards.length,
       spaceCount: data.spaces.length,
     };
-  }, [data.cards.length, data.spaces.length]);
+  }, [settingsOpen, data]);
+
+  function selectSpace(id: string) {
+    setSelectedSpaceId(id);
+    setQuery("");
+    setTypeFilter("all");
+  }
+
+  function exportRecovery() {
+    try {
+      const raw = readRecoveryData();
+      if (raw) downloadText(raw, "homebase-recovery.json");
+      else setNotice("No recovery backup is available.");
+    } catch { setNotice("Browser storage is unavailable."); }
+  }
 
   function updateSettings(next: SettingsData) {
     mutate((current) => ({ ...current, settings: next }));
@@ -355,7 +399,7 @@ export default function App() {
 
   return (
     <div
-      className="flex h-screen overflow-hidden bg-ink-950 text-bone-500 transition-colors"
+      className="flex h-dvh overflow-hidden bg-ink-950 text-bone-500 transition-colors"
       data-theme={data.settings.appearance.theme}
     >
       {/* Boot sequence pulsing gradient blob tied to mood */}
@@ -370,12 +414,12 @@ export default function App() {
           selectedSpaceId={selectedSpace?.id ?? ""}
           cardCounts={cardCounts}
           settings={data.settings}
-          onSelectSpace={setSelectedSpaceId}
+          onSelectSpace={selectSpace}
           onCreateSpace={createSpace}
           onRenameSpace={renameSpace}
           onDeleteSpace={(spaceId) => {
             const space = data.spaces.find((item) => item.id === spaceId);
-            if (space && data.spaces.length > 1) setPendingDelete({ kind: "space", space });
+            if (space && space.id !== "daily") setPendingDelete({ kind: "space", space });
           }}
           onExport={() => downloadBackup(data)}
           onImport={() => fileInputRef.current?.click()}
@@ -386,26 +430,24 @@ export default function App() {
       </div>
 
       {/* Mobile sidebar overlay */}
-      {mobileSidebarOpen ? (
-        <div
-          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden animate-fade-in"
-          onClick={() => setMobileSidebarOpen(false)}
-        >
-          <div className="h-full w-72 max-w-[88vw] animate-slide-in" onClick={(event) => event.stopPropagation()}>
+      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+          <SheetContent side="left" className="w-72 max-w-[88vw] p-0">
+            <SheetTitle className="sr-only">Spaces</SheetTitle>
+            <SheetDescription className="sr-only">Choose and manage your spaces.</SheetDescription>
             <Sidebar
               spaces={data.spaces}
               selectedSpaceId={selectedSpace?.id ?? ""}
               cardCounts={cardCounts}
               settings={data.settings}
               onSelectSpace={(spaceId) => {
-                setSelectedSpaceId(spaceId);
+                selectSpace(spaceId);
                 setMobileSidebarOpen(false);
               }}
-              onCreateSpace={createSpace}
-              onRenameSpace={renameSpace}
+              onCreateSpace={() => { setMobileSidebarOpen(false); createSpace(); }}
+              onRenameSpace={(id) => { setMobileSidebarOpen(false); renameSpace(id); }}
               onDeleteSpace={(spaceId) => {
                 const space = data.spaces.find((item) => item.id === spaceId);
-                if (space && data.spaces.length > 1) setPendingDelete({ kind: "space", space });
+                if (space && space.id !== "daily") { setMobileSidebarOpen(false); setPendingDelete({ kind: "space", space }); }
               }}
               onExport={() => downloadBackup(data)}
               onImport={() => fileInputRef.current?.click()}
@@ -416,9 +458,8 @@ export default function App() {
               }}
               onToggleTheme={toggleTheme}
             />
-          </div>
-        </div>
-      ) : null}
+          </SheetContent>
+      </Sheet>
 
       {/* Main content */}
       <main className="flex min-w-0 flex-1 flex-col">
@@ -429,6 +470,7 @@ export default function App() {
               {/* Mobile menu toggle */}
               <Button
                 className="size-9 shrink-0 px-0 md:hidden"
+                aria-label="Open spaces"
                 variant="ghost"
                 onClick={() => setMobileSidebarOpen(true)}
               >
@@ -438,10 +480,10 @@ export default function App() {
               {/* Space label */}
               <div className="hidden min-w-[140px] sm:block">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">
-                  {query ? "Global results" : "Space"}
+                  {isSearching ? "Global results" : "Space"}
                 </p>
                 <h2 className="truncate text-sm font-semibold text-bone-500 leading-tight mt-0.5">
-                  {query ? "Search" : selectedSpace?.name}
+                  {isSearching ? "Search" : selectedSpace?.name}
                 </h2>
               </div>
 
@@ -450,7 +492,7 @@ export default function App() {
 
               {/* Actions */}
               <div className="flex shrink-0 items-center gap-1.5">
-                <Button onClick={openCreateCard} className="gap-1.5 bg-accent text-accent-text hover:opacity-90 shadow-inner-bright px-3 sm:px-4 transition-opacity">
+                <Button aria-label="New card" onClick={openCreateCard} className="gap-1.5 bg-accent text-accent-text hover:opacity-90 shadow-inner-bright px-3 sm:px-4 transition-opacity">
                   <Plus size={16} />
                   <span className="hidden sm:inline">New card</span>
                 </Button>
@@ -464,11 +506,16 @@ export default function App() {
         {/* Content area */}
         <section className="flex-1 overflow-y-auto px-4 py-5 lg:px-6">
           <div className="mx-auto w-full max-w-[1400px]">
+            {saveError && <div role="alert" className="mb-4 rounded-lg border border-red-400 p-3 text-sm">
+              {saveError} <Button variant="outline" onClick={() => downloadBackup(data)}>Export backup</Button>
+            </div>}
             {/* Notice banner */}
             {notice ? (
-              <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-ink-850 px-3.5 py-2.5 text-sm text-bone-400 animate-slide-up">
+              <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-ink-850 px-3.5 py-2.5 text-sm text-bone-400 animate-slide-up">
                 <span>{notice}</span>
+                {notice.includes("original is preserved") && <Button variant="outline" onClick={exportRecovery}>Export recovery backup</Button>}
                 <button
+                  aria-label="Dismiss notice"
                   onClick={() => setNotice("")}
                   className="text-stone-600 hover:text-bone-400 transition-colors"
                 >
@@ -478,7 +525,7 @@ export default function App() {
             ) : null}
 
             {/* Daily panel */}
-            {selectedSpace?.id === "daily" && !query ? (
+            {selectedSpace?.id === "daily" && !isSearching ? (
               <DailyPanel
                 daily={data.daily}
                 dailyTasks={dailyTaskCards}
@@ -494,12 +541,12 @@ export default function App() {
               <p className="text-[12px] text-stone-600">
                 <span className="font-semibold text-bone-400">{filteredCards.length}</span>{" "}
                 {filteredCards.length === 1 ? "card" : "cards"}
-                {query ? " across Homebase" : selectedSpace ? ` in ${selectedSpace.name}` : ""}
+                {isSearching ? " across Homebase" : selectedSpace ? ` in ${selectedSpace.name}` : ""}
               </p>
               <label className="flex items-center gap-2 text-[12px] text-stone-600">
                 <Filter size={14} />
                 <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val as CardType | "all")}>
-                  <SelectTrigger className="h-8 w-32 bg-ink-850 border-white/[0.07] text-[12px]">
+                  <SelectTrigger aria-label="Filter card type" className="h-8 w-32 bg-ink-850 border-white/[0.07] text-[12px]">
                     <SelectValue placeholder="All types" />
                   </SelectTrigger>
                   <SelectContent className="bg-ink-850 border-white/[0.07]">
@@ -513,10 +560,15 @@ export default function App() {
               </label>
             </div>
 
+            {isSearching && <div className="mb-4 flex flex-wrap gap-2">
+              {data.spaces.filter(space => normalize(space.name).includes(searchQuery)).map(space =>
+                <Button key={space.id} variant="outline" onClick={() => selectSpace(space.id)}>{space.name}</Button>
+              )}
+            </div>}
             {/* Cards */}
             <CardGrid
               cards={filteredCards}
-              hasFilters={Boolean(query) || typeFilter !== "all"}
+              hasFilters={isSearching || typeFilter !== "all"}
               density={data.settings.cards.density}
               onCreateCard={openCreateCard}
               onEdit={(card) => {
@@ -532,13 +584,31 @@ export default function App() {
         </section>
       </main>
 
-      <CardEditor
+      <Suspense fallback={<div role="status" className="fixed bottom-4 right-4 z-50 rounded bg-ink-850 p-3">Loading…</div>}>
+      {editorOpen && <CardEditor
         open={editorOpen}
         spaceId={selectedSpace?.id ?? data.spaces[0]?.id ?? "daily"}
         card={editingCard}
-        defaultType={data.settings.cards.defaultType}
+        defaultType={createType ?? data.settings.cards.defaultType}
         onClose={() => setEditorOpen(false)}
         onSave={saveCard}
+      />}
+      </Suspense>
+
+      <ConfirmDialog
+        open={Boolean(pendingImport)}
+        title="Replace data with backup?"
+        description="This replaces all current spaces, cards, settings, and daily notes. Export a backup first if you want to keep them."
+        confirmLabel="Import"
+        onCancel={() => setPendingImport(null)}
+        onConfirm={() => {
+          if (!pendingImport) return;
+          setData(pendingImport);
+          selectSpace(pendingImport.spaces[0].id);
+          setWelcomeOpen(!pendingImport.hasSeenWelcome);
+          setPendingImport(null);
+          setNotice("Backup imported successfully.");
+        }}
       />
 
       <ConfirmDialog
@@ -574,7 +644,8 @@ export default function App() {
         onCancel={() => setPromptState(null)}
       />
 
-      <SettingsPanel
+      <Suspense fallback={null}>
+      {settingsOpen && <SettingsPanel
         open={settingsOpen}
         settings={data.settings}
         onClose={() => setSettingsOpen(false)}
@@ -586,25 +657,16 @@ export default function App() {
           setConfirmResetOpen(true);
         }}
         storageInfo={storageInfo}
-      />
+      />}
 
-      <CommandPalette
+      {commandPaletteOpen && <CommandPalette
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}
         spaces={data.spaces}
         cards={data.cards}
-        onSelectSpace={setSelectedSpaceId}
+        onSelectSpace={selectSpace}
         onCreateCard={(type) => {
-          mutate((current) => ({
-            ...current,
-            settings: {
-              ...current.settings,
-              cards: {
-                ...current.settings.cards,
-                defaultType: type,
-              },
-            },
-          }));
+          setCreateType(type);
           setEditingCard(null);
           setEditorOpen(true);
         }}
@@ -614,7 +676,8 @@ export default function App() {
           setEditingCard(card);
           setEditorOpen(true);
         }}
-      />
+      />}
+      </Suspense>
     </div>
   );
 }

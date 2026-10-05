@@ -73,6 +73,7 @@ const DENSITY_OPTIONS: { id: CardDensity; label: string; desc: string }[] = [
 ];
 
 const SORT_OPTIONS: { id: SortOrder; label: string }[] = [
+  { id: "manual", label: "Manual (drag to reorder)" },
   { id: "newest", label: "Newest first" },
   { id: "oldest", label: "Oldest first" },
   { id: "alphabetical", label: "Alphabetical" },
@@ -123,9 +124,11 @@ export function SettingsPanel({
         <div className="flex h-full flex-col sm:flex-row">
           {/* Mobile nav — horizontal icon tabs */}
           <nav className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/[0.07] bg-ink-900 px-3 py-2 sm:hidden">
-            {NAV_ITEMS.map(({ id, icon: Icon }) => (
+            {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
+                aria-label={label}
+                aria-current={activeSection === id ? "page" : undefined}
                 onClick={() => setActiveSection(id)}
                 className={cn(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-150",
@@ -220,6 +223,7 @@ function ProfileSection({
       <div className="space-y-2">
         <SectionLabel>Display Name</SectionLabel>
         <Input
+          aria-label="Display name"
           value={settings.profile.displayName}
           onChange={(e) => update("profile", { displayName: e.target.value })}
           placeholder="Your name"
@@ -233,6 +237,8 @@ function ProfileSection({
           {AVATARS.map((emoji) => (
             <button
               key={emoji}
+              aria-label={`Avatar ${emoji}`}
+              aria-pressed={settings.profile.avatar === emoji}
               onClick={() => update("profile", { avatar: emoji })}
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full text-lg transition-all duration-150",
@@ -348,12 +354,20 @@ function DailySection({
 
       <Separator className="bg-white/[0.07]" />
 
+      <div className="space-y-2">
+        <SectionLabel>Greeting</SectionLabel>
+        <Input aria-label="Daily greeting" value={settings.daily.greetingText}
+          onChange={event => update("daily", { greetingText: event.target.value })}
+          placeholder="Leave blank for a rotating greeting" />
+      </div>
+
       <label className="flex cursor-pointer items-center justify-between rounded-lg border border-white/[0.07] bg-ink-850 px-4 py-3 transition hover:border-white/14">
         <div>
           <p className="text-[13px] font-medium text-bone-500">Show journal section</p>
-          <p className="mt-0.5 text-[11px] text-stone-600">Quick notes and focus area</p>
+          <p className="mt-0.5 text-[11px] text-stone-600">Quick notes area</p>
         </div>
         <Checkbox
+          aria-label="Show journal section"
           checked={settings.daily.showJournal}
           onCheckedChange={(checked) =>
             update("daily", { showJournal: checked === true })
@@ -370,6 +384,7 @@ function DailySection({
           </p>
         </div>
         <Checkbox
+          aria-label="Show pinned links"
           checked={settings.daily.showPinnedLinks}
           onCheckedChange={(checked) =>
             update("daily", { showPinnedLinks: checked === true })

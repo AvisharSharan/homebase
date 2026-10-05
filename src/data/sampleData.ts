@@ -35,7 +35,7 @@ export const blankData: HomebaseData = {
         { id: "t1", text: "Create a new Space in the sidebar", completed: false },
         { id: "t2", text: "Check off this item", completed: false },
         { id: "t3", text: "Click 'New card' to add a code snippet", completed: false },
-        { id: "t4", text: "Export a JSON backup using the top bar icon", completed: false },
+        { id: "t4", text: "Export a JSON backup from Settings → Data", completed: false },
       ],
       tags: ["getting-started"],
       pinned: false,

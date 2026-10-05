@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import { Command } from "cmdk";
-import { FileText, ListChecks, Link2, Code2, Plus, Moon, Sun, Monitor, Folder, Search } from "lucide-react";
+import { FileText, ListChecks, Link2, Code2, Sun, Folder, Search } from "lucide-react";
 import { Space, CardType, HomebaseCard } from "../../types";
+import * as Dialog from "@radix-ui/react-dialog";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -35,10 +35,12 @@ export function CommandPalette({
       }}
     >
       <div className="w-full max-w-xl overflow-hidden rounded-xl border border-white/10 bg-ink-900 shadow-2xl animate-slide-in-up" onClick={(e) => e.stopPropagation()}>
-        <Command className="flex flex-col h-full w-full bg-transparent">
+        <Dialog.Title className="sr-only">Search and commands</Dialog.Title>
+        <Dialog.Description className="sr-only">Find cards, choose spaces, or create a card.</Dialog.Description>
           <div className="flex items-center border-b border-white/10 px-4">
             <Search className="mr-2 h-5 w-5 text-stone-500 shrink-0" />
             <Command.Input
+              aria-label="Search commands"
               autoFocus
               placeholder="Type a command or search..."
               className="flex h-14 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-stone-500 text-bone-500 disabled:cursor-not-allowed disabled:opacity-50"
@@ -50,21 +52,27 @@ export function CommandPalette({
             <Command.Group heading="Create Card" className="px-2 py-1.5 text-xs font-medium text-stone-500">
               <Command.Item
                 onSelect={() => { onCreateCard("note"); onOpenChange(false); }}
-                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors"
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 transition-colors"
               >
                 <FileText className="mr-2 h-4 w-4" /> Create Note
               </Command.Item>
               <Command.Item
                 onSelect={() => { onCreateCard("task"); onOpenChange(false); }}
-                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors"
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 transition-colors"
               >
                 <ListChecks className="mr-2 h-4 w-4" /> Create Task List
               </Command.Item>
               <Command.Item
                 onSelect={() => { onCreateCard("link"); onOpenChange(false); }}
-                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors"
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 transition-colors"
               >
                 <Link2 className="mr-2 h-4 w-4" /> Save Link
+              </Command.Item>
+              <Command.Item onSelect={() => { onCreateCard("reference"); onOpenChange(false); }} className="flex cursor-pointer items-center rounded px-2 py-2 text-sm aria-selected:bg-white/10">
+                <FileText className="mr-2 h-4 w-4" /> Create Reference
+              </Command.Item>
+              <Command.Item onSelect={() => { onCreateCard("snippet"); onOpenChange(false); }} className="flex cursor-pointer items-center rounded px-2 py-2 text-sm aria-selected:bg-white/10">
+                <Code2 className="mr-2 h-4 w-4" /> Create Snippet
               </Command.Item>
             </Command.Group>
 
@@ -73,8 +81,10 @@ export function CommandPalette({
                 {spaces.map(space => (
                   <Command.Item
                     key={space.id}
+                    value={`space ${space.id}`}
+                    keywords={[space.name]}
                     onSelect={() => { onSelectSpace(space.id); onOpenChange(false); }}
-                    className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors"
+                    className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 transition-colors"
                   >
                     <Folder className="mr-2 h-4 w-4 text-stone-500" /> {space.name}
                   </Command.Item>
@@ -85,7 +95,7 @@ export function CommandPalette({
             <Command.Group heading="Actions" className="px-2 py-1.5 text-xs font-medium text-stone-500 mt-2">
               <Command.Item
                 onSelect={() => { onToggleTheme(); onOpenChange(false); }}
-                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors"
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 transition-colors"
               >
                 <Sun className="mr-2 h-4 w-4" /> Toggle Theme
               </Command.Item>
@@ -96,9 +106,10 @@ export function CommandPalette({
                 {cards.map(card => (
                   <Command.Item
                     key={card.id}
-                    value={card.title + " " + card.content}
+                    value={`card ${card.id}`}
+                    keywords={[card.title, card.content, ...card.tags, ...(card.type === "task" ? card.tasks.map(task => task.text) : []), ...(card.type === "link" ? [card.url] : []), ...(card.type === "reference" ? [card.reference] : [])]}
                     onSelect={() => { onSelectCard(card); onOpenChange(false); }}
-                    className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors"
+                    className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none aria-selected:bg-white/10 aria-selected:text-bone-500 text-stone-400 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 transition-colors"
                   >
                     <FileText className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                     <span className="truncate">{card.title || "Untitled Card"}</span>
@@ -107,7 +118,6 @@ export function CommandPalette({
               </Command.Group>
             )}
           </Command.List>
-        </Command>
       </div>
     </Command.Dialog>
   );

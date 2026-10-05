@@ -4,6 +4,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Button } from "../ui/button";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
+import { useEffect, useState } from "react";
 
 interface CardGridProps {
   cards: HomebaseCard[];
@@ -18,6 +19,10 @@ interface CardGridProps {
 }
 
 export function CardGrid({ cards, hasFilters, density = "comfortable", onCreateCard, onEdit, onDelete, onTogglePin, onToggleTask, onDragEnd }: CardGridProps) {
+  const [visibleCount, setVisibleCount] = useState(60);
+  const resultKey = cards.map(card => card.id).sort().join("|");
+  useEffect(() => { setVisibleCount(60); }, [resultKey]);
+  const visibleCards = cards.slice(0, visibleCount);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -46,9 +51,9 @@ export function CardGrid({ cards, hasFilters, density = "comfortable", onCreateC
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-      <SortableContext items={cards.map(c => c.id)} strategy={rectSortingStrategy}>
+      <SortableContext items={visibleCards.map(c => c.id)} strategy={rectSortingStrategy}>
         <div className={`grid grid-cols-1 ${gapClass} sm:grid-cols-2 xl:grid-cols-3`}>
-          {cards.map((card) => (
+          {visibleCards.map((card) => (
             <CardView
               key={card.id}
               card={card}
@@ -60,6 +65,9 @@ export function CardGrid({ cards, hasFilters, density = "comfortable", onCreateC
           ))}
         </div>
       </SortableContext>
+      {visibleCount < cards.length && <div className="mt-4 text-center">
+        <Button variant="outline" onClick={() => setVisibleCount(count => count + 60)}>Show more ({cards.length - visibleCount} remaining)</Button>
+      </div>}
     </DndContext>
   );
 }

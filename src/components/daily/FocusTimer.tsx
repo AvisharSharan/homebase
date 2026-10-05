@@ -1,39 +1,59 @@
 import { useEffect, useState } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
+import { DEFAULT_TIME, remainingSeconds } from "../../lib/timer";
 
 interface FocusTimerProps {
   mood: string;
   isLightMode: boolean;
 }
 
-const DEFAULT_TIME = 25 * 60; // 25 minutes
+const TIMER_KEY = "homebase:focus-timer";
+function loadTimer(): { remaining: number; deadline: number | null } {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem(TIMER_KEY) || "null");
+    if (raw && Number.isFinite(raw.remaining) && raw.remaining >= 0 && raw.remaining <= DEFAULT_TIME &&
+      (raw.deadline === null || Number.isFinite(raw.deadline))) {
+      return { remaining: raw.deadline === null ? raw.remaining : remainingSeconds(raw.deadline), deadline: raw.deadline };
+    }
+  } catch { /* Timer remains usable when session storage is blocked. */ }
+  return { remaining: DEFAULT_TIME, deadline: null };
+}
 
 export function FocusTimer({ mood, isLightMode }: FocusTimerProps) {
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
-  const [isRunning, setIsRunning] = useState(false);
+  const [timer, setTimer] = useState(loadTimer);
+  const [timeLeft, setTimeLeft] = useState(timer.remaining);
+  const isRunning = timer.deadline !== null && timeLeft > 0;
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setIsRunning(false);
-    }
+    if (timer.deadline === null) { setTimeLeft(timer.remaining); return; }
+    const tick = () => {
+      const remaining = remainingSeconds(timer.deadline!);
+      setTimeLeft(remaining);
+      if (remaining === 0) setTimer({ remaining: 0, deadline: null });
+    };
+    tick();
+    const interval = setInterval(tick, 250);
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft]);
+  }, [timer]);
+
+  useEffect(() => {
+    try { sessionStorage.setItem(TIMER_KEY, JSON.stringify(timer)); } catch { /* Nonessential persistence. */ }
+  }, [timer]);
 
   function toggleTimer() {
-    if (timeLeft === 0) {
-      setTimeLeft(DEFAULT_TIME);
+    if (isRunning) {
+      const remaining = remainingSeconds(timer.deadline!);
+      setTimer({ remaining, deadline: null });
+    } else {
+      const remaining = timeLeft || DEFAULT_TIME;
+      setTimeLeft(remaining);
+      setTimer({ remaining, deadline: Date.now() + remaining * 1000 });
     }
-    setIsRunning(!isRunning);
   }
 
   function resetTimer(e: React.MouseEvent) {
     e.stopPropagation();
-    setIsRunning(false);
+    setTimer({ remaining: DEFAULT_TIME, deadline: null });
     setTimeLeft(DEFAULT_TIME);
   }
 
@@ -81,6 +101,7 @@ export function FocusTimer({ mood, isLightMode }: FocusTimerProps) {
           />
         </svg>
         <button
+          aria-label={isRunning ? "Pause focus timer" : "Start focus timer"}
           onClick={toggleTimer}
           className="absolute inset-0 flex items-center justify-center rounded-full text-bone-400 hover:text-white transition-colors group"
         >
@@ -93,10 +114,10 @@ export function FocusTimer({ mood, isLightMode }: FocusTimerProps) {
       </div>
 
       <div className="flex flex-col justify-center min-w-[50px]">
-        <span className={`text-xl font-mono tracking-tight font-medium ${isRunning ? activeColor.stroke : "text-bone-500"}`}>
+        <span role="timer" aria-label="Time remaining" className={`text-xl font-mono tracking-tight font-medium ${isRunning ? activeColor.stroke : "text-bone-500"}`}>
           {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
         </span>
-        {timeLeft < DEFAULT_TIME && !isRunning && (
+        {timeLeft < DEFAULT_TIME && (
           <button 
             onClick={resetTimer}
             className="text-[10px] text-stone-500 hover:text-stone-400 flex items-center gap-1 mt-0.5"

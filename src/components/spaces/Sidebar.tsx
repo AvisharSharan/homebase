@@ -49,6 +49,7 @@ export function Sidebar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label="Create space"
                 className="size-8 px-0 rounded-md text-stone-600 hover:text-bone-400 hover:bg-white/[0.06]"
                 variant="ghost"
                 onClick={onCreateSpace}
@@ -73,6 +74,7 @@ export function Sidebar({
                 }`}
               >
                 <button
+                  aria-current={active ? "page" : undefined}
                   className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left"
                   onClick={() => onSelectSpace(space.id)}
                 >
@@ -93,10 +95,11 @@ export function Sidebar({
                 </button>
 
                 {/* Context actions — appear on hover */}
-                <div className="flex items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="flex items-center gap-0.5 pr-1">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
+                        aria-label={`Rename ${space.name}`}
                         className="grid size-7 place-items-center rounded text-stone-600 hover:text-bone-400 hover:bg-white/[0.06] transition-colors"
                         onClick={() => onRenameSpace(space.id)}
                       >
@@ -108,6 +111,8 @@ export function Sidebar({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
+                        aria-label={`Delete ${space.name}`}
+                        disabled={space.id === "daily"}
                         className="grid size-7 place-items-center rounded text-stone-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                         onClick={() => onDeleteSpace(space.id)}
                       >
@@ -138,6 +143,7 @@ export function Sidebar({
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
+                  aria-label="Toggle light/dark mode"
                   onClick={onToggleTheme}
                   className="size-7 p-0 text-stone-400 hover:bg-white/10 hover:text-white rounded-md transition-colors"
                 >
@@ -150,6 +156,7 @@ export function Sidebar({
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
+                  aria-label="Settings"
                   onClick={onOpenSettings}
                   className="size-7 p-0 text-stone-400 hover:bg-white/10 hover:text-white rounded-md transition-colors"
                 >

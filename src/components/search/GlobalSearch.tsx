@@ -15,10 +15,11 @@ export function GlobalSearch({ value, onChange, resultCount }: GlobalSearchProps
         size={16}
       />
       <Input
+        aria-label="Search Homebase"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Search spaces, cards, tags..."
-        className="h-9 w-full rounded-lg border-white/[0.07] bg-ink-850 px-10 text-sm text-bone-500 transition placeholder:text-stone-600 focus-visible:border-white/20 focus-visible:bg-ink-800 focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-0"
+        className="h-9 w-full rounded-lg border-white/[0.07] bg-ink-850 pl-10 pr-8 sm:pr-28 text-sm text-bone-500 transition placeholder:text-stone-600 focus-visible:border-white/20 focus-visible:bg-ink-800 focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-0"
       />
       {value ? (
         <>

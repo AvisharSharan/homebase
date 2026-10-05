@@ -1,15 +1,23 @@
-import { Check, Code2, ExternalLink, FileText, Link2, ListChecks, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
+import { Code2, ExternalLink, FileText, GripVertical, Link2, ListChecks, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
+import { lazy, Suspense } from "react";
+import { safeWebUrl } from "../../lib/url";
 import { CardType, HomebaseCard } from "../../types";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Checkbox } from "../ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+const Markdown = lazy(() => import("./Markdown"));
+
+function snippetMarkdown(content: string, language: string) {
+  let longestFence = 2;
+  for (const match of content.matchAll(/`+/g)) longestFence = Math.max(longestFence, match[0].length);
+  const fence = "`".repeat(longestFence + 1);
+  const safeLanguage = /^[a-z0-9_+#.-]+$/i.test(language) ? language : "text";
+  return `${fence}${safeLanguage}\n${content}\n${fence}`;
+}
 
 const typeIcons: Record<CardType, typeof FileText> = {
   note: FileText,
@@ -34,6 +42,7 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -50,9 +59,7 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
     <Card
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={`group relative flex min-h-[200px] flex-col rounded-xl border border-white/[0.07] bg-ink-900 shadow-card hover:border-white/[0.13] hover:shadow-card-hover ${isDragging ? 'cursor-grabbing border-white/20' : 'transition-all duration-200 cursor-grab hover:-translate-y-px'}`}
+      className={`group relative min-w-0 flex min-h-[200px] flex-col rounded-xl border border-white/[0.07] bg-ink-900 shadow-card hover:border-white/[0.13] hover:shadow-card-hover ${isDragging ? 'border-white/20' : 'transition-all duration-200'}`}
     >
       {/* Pinned green top strip */}
       {card.pinned && (
@@ -71,18 +78,20 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
           </div>
           {/* Title */}
           <button className="block text-left" onClick={() => onEdit(card)}>
-            <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug text-bone-500 hover:text-white transition-colors">
+            <h3 className="line-clamp-2 break-words text-[15px] font-semibold leading-snug text-bone-500 hover:text-white transition-colors">
               {card.title}
             </h3>
           </button>
         </div>
 
         {/* Card actions */}
-        <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+        <div className="flex shrink-0 flex-wrap justify-end gap-0.5">
+          <button ref={setActivatorNodeRef} {...attributes} {...listeners} aria-label={`Reorder ${card.title}`} className="grid size-8 touch-none place-items-center rounded cursor-grab text-stone-500"><GripVertical size={15} /></button>
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  aria-label={`Edit ${card.title}`}
                   className="size-8 px-0 rounded-md"
                   variant="ghost"
                   onClick={() => onEdit(card)}
@@ -95,6 +104,7 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  aria-label={card.pinned ? `Unpin ${card.title}` : `Pin ${card.title}`}
                   className="size-8 px-0 rounded-md"
                   variant="ghost"
                   onClick={() => onTogglePin(card.id)}
@@ -110,6 +120,7 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  aria-label={`Delete ${card.title}`}
                   className="size-8 px-0 rounded-md"
                   variant="ghost"
                   onClick={() => onDelete(card)}
@@ -123,7 +134,7 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
         </div>
       </CardHeader>
 
-      <CardContent className="mt-3 flex-1 p-4 pt-0 text-sm leading-6 text-stone-500">
+      <CardContent className="mt-3 min-w-0 flex-1 p-4 pt-0 text-sm leading-6 text-stone-500 [overflow-wrap:anywhere]">
         {card.type === "task" ? (
           <div className="space-y-1.5">
             {card.tasks.map((task) => (
@@ -132,6 +143,7 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
                 className="flex w-full items-start gap-2.5 rounded-lg p-1.5 text-left hover:bg-white/[0.04] transition-colors cursor-pointer"
               >
                 <Checkbox
+                  aria-label={task.text}
                   checked={task.completed}
                   onCheckedChange={() => onToggleTask(card.id, task.id)}
                   className="mt-0.5 border-white/15 data-[state=checked]:bg-green-500/15 data-[state=checked]:text-green-400 data-[state=checked]:border-green-500/50"
@@ -143,16 +155,18 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
             ))}
           </div>
         ) : card.type === "snippet" ? (
-          <pre className="max-h-36 overflow-auto rounded-lg border border-white/[0.07] bg-ink-950 p-3 font-mono text-xs text-stone-400 leading-5">
-            <code>{card.content}</code>
-          </pre>
+          <div className="hb-markdown max-h-36 overflow-auto rounded-lg border border-white/[0.07] bg-ink-950 font-mono text-xs text-stone-400 leading-5">
+            <Suspense fallback={<pre className="p-3"><code>{card.content}</code></pre>}>
+              <Markdown>{snippetMarkdown(card.content, card.language)}</Markdown>
+            </Suspense>
+          </div>
         ) : card.type === "note" ? (
-          <div className="prose prose-sm prose-invert max-w-none text-stone-500 line-clamp-[8]
+          <div className="hb-markdown prose prose-sm max-w-none text-stone-500 line-clamp-[8]
                           prose-headings:text-bone-500 prose-a:text-accent prose-code:text-accent-text
                           prose-strong:text-bone-400 prose-ul:my-1 prose-p:my-1 text-[13px] leading-6">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+            <Suspense fallback={<p className="whitespace-pre-wrap">{card.content}</p>}><Markdown>
               {card.content}
-            </ReactMarkdown>
+            </Markdown></Suspense>
           </div>
         ) : (
           <p className="line-clamp-5 whitespace-pre-wrap text-[13px] leading-6 text-stone-500">
@@ -160,17 +174,18 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
           </p>
         )}
 
-        {card.type === "link" && (
+        {card.type === "link" && safeWebUrl(card.url) && (
           <a
-            href={card.url}
+            href={safeWebUrl(card.url)}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-bone-400 hover:text-white transition-colors"
           >
             <ExternalLink size={14} className="text-green-500" />
             Open link
           </a>
         )}
+        {card.type === "link" && !safeWebUrl(card.url) && <p className="mt-3 text-red-400">Invalid or unsafe link. Edit this card to fix it.</p>}
         {card.type === "reference" && (
           <p className="mt-3 text-[11px] text-stone-600 font-mono">{card.reference}</p>
         )}
@@ -183,7 +198,7 @@ export function CardView({ card, onEdit, onDelete, onTogglePin, onToggleTask }: 
               <Badge
                 key={tag}
                 variant="secondary"
-                className="rounded-md border border-white/[0.07] bg-ink-800 hover:bg-ink-800 px-2 py-0.5 text-[11px] font-normal text-stone-500"
+                className="max-w-full break-all whitespace-normal rounded-md border border-white/[0.07] bg-ink-800 hover:bg-ink-800 px-2 py-0.5 text-[11px] font-normal text-stone-500"
               >
                 {tag}
               </Badge>

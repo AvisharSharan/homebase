@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { CardType, HomebaseCard, TaskItem } from "../../types";
 import { createId } from "../../lib/id";
 import { Button } from "../ui/button";
@@ -6,9 +6,8 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
+const Markdown = lazy(() => import("./Markdown"));
+import { safeWebUrl } from "../../lib/url";
 
 interface CardEditorProps {
   open: boolean;
@@ -31,6 +30,7 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
   const [language, setLanguage] = useState("text");
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [isPreview, setIsPreview] = useState(false);
+  const [error, setError] = useState("");
   const isEditing = Boolean(card);
 
   useEffect(() => {
@@ -44,22 +44,31 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
     setLanguage(card?.type === "snippet" ? card.language : "text");
     setTasks(card?.type === "task" ? card.tasks : [{ id: createId("task"), text: "", completed: false }]);
     setIsPreview(false);
-  }, [card, open]);
+    setError("");
+  }, [card, open, defaultType]);
 
   const drawerTitle = useMemo(() => (isEditing ? "Edit card" : "New card"), [isEditing]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (type === "link" && !safeWebUrl(url)) {
+      setError("Enter a full http:// or https:// URL without login credentials.");
+      return;
+    }
+    if (type === "task" && !tasks.some(task => task.text.trim())) {
+      setError("Add at least one task item.");
+      return;
+    }
     const timestamp = new Date().toISOString();
     const base = {
       id: card?.id ?? createId("card"),
       type,
       title: title.trim() || "Untitled card",
       content,
-      tags: tags
+      tags: [...new Set(tags
         .split(",")
         .map((tag) => tag.trim())
-        .filter(Boolean),
+        .filter(Boolean))],
       pinned: card?.pinned ?? false,
       createdAt: card?.createdAt ?? timestamp,
       updatedAt: timestamp,
@@ -73,7 +82,7 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
         tasks: tasks.filter((task) => task.text.trim()).map((task) => ({ ...task, text: task.text.trim() })),
       });
     } else if (type === "link") {
-      onSave({ ...base, type, url: url.trim() });
+      onSave({ ...base, type, url: safeWebUrl(url)! });
     } else if (type === "reference") {
       onSave({ ...base, type, reference: reference.trim() });
     } else if (type === "snippet") {
@@ -107,6 +116,7 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
                     key={cardType}
                     type="button"
                     disabled={isEditing}
+                    aria-pressed={type === cardType}
                     onClick={() => setType(cardType)}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
                       type === cardType
@@ -157,10 +167,10 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
               </div>
               
               {type === "note" && isPreview ? (
-                <div className="min-h-[120px] rounded-md border border-white/[0.07] bg-ink-900 p-3 prose prose-sm prose-invert max-w-none text-stone-500 prose-headings:text-bone-500 prose-a:text-accent prose-code:text-accent-text prose-strong:text-bone-400 prose-ul:my-1 prose-p:my-1 text-[13px] leading-6 overflow-y-auto">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                <div className="hb-markdown min-h-[120px] rounded-md border border-white/[0.07] bg-ink-900 p-3 prose prose-sm max-w-none text-stone-500 prose-headings:text-bone-500 prose-a:text-accent prose-code:text-accent-text prose-strong:text-bone-400 prose-ul:my-1 prose-p:my-1 text-[13px] leading-6 overflow-y-auto">
+                  <Suspense fallback={<p>{content}</p>}><Markdown>
                     {content || "*Nothing to preview yet...*"}
-                  </ReactMarkdown>
+                  </Markdown></Suspense>
                 </div>
               ) : (
                 <Textarea
@@ -180,13 +190,17 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
                 <Label className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Task items</Label>
                 <div className="space-y-2">
                   {tasks.map((task, i) => (
+                    <div className="flex gap-2" key={task.id}>
                     <Input
                       key={task.id}
+                      aria-label={`Task item ${i + 1}`}
                       value={task.text}
                       onChange={(event) => updateTask(task.id, event.target.value)}
                       placeholder={`Item ${i + 1}...`}
                       className="h-10 border-white/[0.07] bg-ink-850 focus-visible:border-white/20 focus-visible:bg-ink-800"
                     />
+                    <Button type="button" variant="outline" aria-label={`Remove task item ${i + 1}`} onClick={() => setTasks(current => current.filter(item => item.id !== task.id))}>Remove</Button>
+                    </div>
                   ))}
                 </div>
                 <Button
@@ -206,6 +220,7 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
                 <Label htmlFor="url" className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">URL</Label>
                 <Input
                   id="url"
+                  aria-invalid={!!error}
                   value={url}
                   onChange={(event) => setUrl(event.target.value)}
                   placeholder="https://"
@@ -256,7 +271,8 @@ export function CardEditor({ open, spaceId, card, defaultType = "note", onClose,
           </div>
 
           {/* Footer actions */}
-          <SheetFooter className="p-5 border-t border-white/[0.06] bg-ink-900 sm:justify-end gap-2">
+          {error && <p role="alert" className="px-5 pb-3 text-sm text-red-400">{error}</p>}
+          <SheetFooter className="sticky bottom-0 p-5 border-t border-white/[0.06] bg-ink-900 sm:justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>

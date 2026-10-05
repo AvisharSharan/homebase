@@ -36,7 +36,8 @@ export function PromptDialog({
   useEffect(() => {
     if (open) {
       setValue(defaultValue);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const timeout = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(timeout);
     }
   }, [open, defaultValue]);
 
@@ -65,6 +66,7 @@ export function PromptDialog({
         </AlertDialogHeader>
         <div className="py-2">
           <Input
+            aria-label={title}
             ref={inputRef}
             value={value}
             onChange={(e) => setValue(e.target.value)}
